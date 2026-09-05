@@ -3,7 +3,7 @@
 
 async function request(
   url: string,
-  params: string,
+  params: Record<string, unknown>,
   method: RequestType = "GET",
 ) {
   // options passed to the fetch request
@@ -40,12 +40,14 @@ async function request(
   return result;
 }
 
-// converts an object into a query string
-// ex {region: 8:12-55} --> &region=8:12-55
-export function objectToQueryString(obj) {
-  return Object.keys(obj)
-    .map((key) => key + "=" + obj[key])
-    .join("&");
+// converts an object into a URL encoded query string
+// ex {region: "8:12-55"} --> region=8%3A12-55
+export function objectToQueryString(obj: Record<string, unknown>): string {
+  const params = new URLSearchParams();
+  Object.entries(obj).forEach(([key, value]) => {
+    params.append(key, String(value));
+  });
+  return params.toString();
 }
 
 export function get(url, params) {

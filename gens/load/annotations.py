@@ -388,7 +388,10 @@ def format_bed_data(data_type: str, value: str) -> str | int | Color | None:
     """Parse the data based on its type."""
     new_value = None if value == "." else value
     if data_type == "color":
-        return Color(DEFAULT_COLOUR) if new_value is None else Color(new_value)
+        if new_value is None:
+            return Color(DEFAULT_COLOUR)
+        # BED itemRgb is a bare "255,0,0" triplet, which Color cannot parse.
+        return _parse_color(new_value) if "," in new_value else Color(new_value)
     if data_type == "chrom":
         if not new_value:
             raise ValueError(f"field {data_type} must exist")

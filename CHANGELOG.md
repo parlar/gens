@@ -17,6 +17,12 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 - Apply the configured session lifetime when authenticating API requests, so expired session cookies are no longer accepted there
 - Embed the samples JSON directly instead of inside a JavaScript template literal, preventing a stored case ID from executing script on the samples page
 - Discard stale data track responses before updating the cached render data, so a slow request can no longer redraw another region's data
+- Validate replacement annotations before deleting the existing track, so a file that parses to no records no longer orphans the previously loaded annotations
+- Handle haploid genotypes (`GT=0`, `GT=1`) when calculating BAF instead of raising `ValueError`
+- Use a consistent BED to genomic coordinate conversion when reading coverage and BAF, removing a parity dependent off-by-one in reported positions
+- URL encode query parameters with `URLSearchParams`, so sample identifiers containing `&`, `+` or `#` are no longer corrupted or truncated
+- Clamp panning to the first base of a chromosome and tolerate positions matching no cytogenetic band
+- Accept the standard BED `255,0,0` itemRgb colour format in addition to `rgb(255,0,0)`
 
 ## 4.6.2
 

@@ -62,7 +62,9 @@ def parse_raw_tabix(tabix_result: list[list[str]]) -> GenomeCoverage:
     for entry in tabix_result:
         start = int(entry[1])
         end = int(entry[2])
-        positions.append(round((start + end) / 2))
+        # BED is 0-based half-open, so the interval covers 1-based [start + 1, end].
+        # Integer division keeps single-base sites (start = pos - 1, end = pos) exact.
+        positions.append((start + 1 + end) // 2)
         values.append(float(entry[3]))
     return GenomeCoverage(
         region=region,

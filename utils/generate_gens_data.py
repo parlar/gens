@@ -377,7 +377,15 @@ class GVCFEntry:
         gt = self.sample_entries["GT"]
         if "." in gt:
             return None
-        _ref_str, alt_str = gt.replace("|", "/").split("/")
+        alleles = gt.replace("|", "/").split("/")
+        if len(alleles) == 1:
+            # Haploid call (e.g. chrX/chrY in males, chrM); the single allele is the call
+            alt_str = alleles[0]
+        elif len(alleles) == 2:
+            _ref_str, alt_str = alleles
+        else:
+            # Higher ploidy is not supported for BAF calculation
+            return None
         alt = int(alt_str)
 
         allele_depths = [int(d) for d in self.sample_entries["AD"].split(",")]

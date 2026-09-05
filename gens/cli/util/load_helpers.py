@@ -174,18 +174,22 @@ def load_annotations_data(
             )
             raise click.Abort() from err
 
+        # Validate the replacement before touching the existing track, so a bad
+        # file cannot orphan the annotations that are already loaded.
+        if len(parse_recs_res.records) == 0:
+            if track_result.track_in_db is None:
+                # Only remove the track if this run is what created it.
+                delete_annotation_track(track_result.track_id, db)
+            raise ValueError(
+                "Something went wrong parsing the annotations file, no valid annotations found."
+            )
+
         if len(parse_recs_res.file_meta) > 0:
             logger.debug("Updating existing annotation track with metadata from file.")
             update_annotation_track(
                 track_id=track_result.track_id,
                 metadata=parse_recs_res.file_meta,
                 db=db,
-            )
-
-        if len(parse_recs_res.records) == 0:
-            delete_annotation_track(track_result.track_id, db)
-            raise ValueError(
-                "Something went wrong parsing the annotations file, no valid annotations found."
             )
 
         if track_result.track_in_db is not None:

@@ -82,7 +82,8 @@ export class SessionPosition {
       (band) => band.start <= endPos && band.end >= endPos,
     );
 
-    return [startBand.id, endBand.id];
+    // A position can fall outside every band (e.g. before the first band starts)
+    return [startBand?.id ?? "", endBand?.id ?? ""];
   }
 
   // FIXME: Should be in data sources instead perhaps?
@@ -104,8 +105,9 @@ export class SessionPosition {
   public moveXRange(distance: number): void {
     const startRange = this.getXRange();
     const chromSize = this.getCurrentChromSize();
+    // Chromosome coordinates are 1-based, so 0 is not a valid position
     const newRange: Rng = [
-      Math.max(0, Math.floor(startRange[0] + distance)),
+      Math.max(1, Math.floor(startRange[0] + distance)),
       Math.min(Math.floor(startRange[1] + distance), chromSize),
     ];
     this.setViewRange(newRange);
