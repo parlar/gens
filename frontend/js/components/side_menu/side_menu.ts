@@ -53,6 +53,7 @@ template.innerHTML = String.raw`
       top: 0;
       right: 0;
       width: ${STYLE.menu.width}px;
+      max-width: 100vw;
       height: 100vh;
       box-sizing: border-box;
       background: white;

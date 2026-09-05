@@ -554,6 +554,49 @@ export class API {
     return this.overviewBafCache[sampleKey];
   }
 
+  async getBafHistogramData(
+    id: SampleIdentifier,
+    region: Region,
+    signal?: AbortSignal,
+  ): Promise<ApiCoverageDot[]> {
+    if (
+      !Number.isInteger(region.start) ||
+      !Number.isInteger(region.end) ||
+      region.start < 1 ||
+      region.end < region.start
+    ) {
+      throw new Error("Invalid BAF histogram interval");
+    }
+    const result = (await get(
+      new URL("samples/sample/baf", this.apiURI).href,
+      {
+        sample_id: id.sampleId,
+        case_id: id.caseId,
+        genome_build: id.genomeBuild,
+        chromosome: region.chrom,
+        zoom_level: "d",
+        start: region.start - 1,
+        end: region.end,
+      },
+      signal,
+    )) as { position: number[]; value: number[]; zoom: string | null } | null;
+
+    if (
+      result == null ||
+      !Array.isArray(result.position) ||
+      !Array.isArray(result.value) ||
+      result.position.length !== result.value.length ||
+      (result.position.length > 0 && result.zoom !== "d")
+    ) {
+      throw new Error("Full-resolution BAF data is unavailable");
+    }
+
+    return filterRange(
+      result.position.map((pos, index) => ({ pos, value: result.value[index] })),
+      [region.start, region.end],
+    );
+  }
+
   getSample(id: SampleIdentifier): Promise<ApiSample> {
     const query = {
       sample_id: id.sampleId,

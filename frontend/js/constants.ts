@@ -42,6 +42,7 @@ export const ICONS = {
   download: "fa-download",
   expand: "fa-maximize",
   help: "fa-circle-question",
+  histogram: "fa-chart-simple",
   hide: "fa-eye-slash",
   info: "fa-table-cells",
   left: "fa-arrow-left",

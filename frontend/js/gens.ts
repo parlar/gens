@@ -30,6 +30,7 @@ import {
   TrackHeights,
 } from "./components/side_menu/settings_menu";
 import { InfoMenu } from "./components/side_menu/info_menu";
+import { BafHistogramPanel } from "./components/side_menu/baf_histogram";
 import { HeaderInfo } from "./components/header_info";
 import { GensSession } from "./state/gens_session";
 import { GensHome } from "./home/gens_home";
@@ -111,6 +112,7 @@ export async function initCanvases({
   const settingsPage = document.createElement("settings-page") as SettingsMenu;
   const infoPage = document.createElement("info-page") as InfoMenu;
   const helpPage = document.createElement("help-page") as HelpMenu;
+  const histogramPage = new BafHistogramPanel();
   const headerInfo = document.getElementById("header-info") as HeaderInfo;
 
   // FIXME: This will need to be adapted when more software are introduced
@@ -133,6 +135,9 @@ export async function initCanvases({
     infoPage.render();
     helpPage.render();
     inputControls.render(settings);
+    if (sideMenu.hasAttribute("drawer-open")) {
+      histogramPage.render();
+    }
 
     if (settings.saveLayoutChange) {
       gensTracks.trackView.saveTrackLayout();
@@ -226,6 +231,16 @@ export async function initCanvases({
     (metaId: string) => session.getMetaWarnings(metaId),
   );
 
+  histogramPage.setSources({
+    getSamples: () => session.getSamples(),
+    getMainSample: () => session.getMainSample(),
+    getRegion: () => session.pos.getRegion(),
+    getHighlights: () => session.getAllHighlights(),
+    getSampleLabel: (sample) => session.getDisplaySampleLabel(sample),
+    loadData: (sample, region, signal) =>
+      api.getBafHistogramData(sample, region, signal),
+  });
+
   headerInfo.setCaseLabel(session.getDisplayCaseLabel(caseId, displayCaseId));
 
   const getSearchResults = (query: string) => {
@@ -244,6 +259,8 @@ export async function initCanvases({
     infoPage,
     helpPage,
     getSearchResults,
+    () =>
+      sideMenu.showContent("BAF histogram", [histogramPage], STYLE.menu.width),
   );
 
   await gensTracks.initializeTrackView(
@@ -266,6 +283,7 @@ function initializeInputControls(
   infoPage: InfoMenu,
   helpPage: HelpMenu,
   getSearchResults: (query: string) => Promise<ApiSearchResult>,
+  onOpenBafHistogram: () => void,
 ) {
   const showBadge = session.hasMetaWarnings();
 
@@ -306,6 +324,7 @@ function initializeInputControls(
     getSearchResults,
     onChange,
     showBadge,
+    onOpenBafHistogram,
   );
 }
 

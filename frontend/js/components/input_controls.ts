@@ -52,6 +52,13 @@ template.innerHTML = String.raw`
     #info-warning-badge.visible {
       display: inline-block;
     }
+    @media (max-width: 1100px) {
+      #input-controls-container { flex-wrap: wrap; }
+      #input-controls-center { order: 3; flex: 1 1 100%; flex-wrap: wrap; gap: 4px; }
+      #input-controls-right { gap: 4px; }
+      #logo-part { min-width: 0; }
+      #region-field { min-width: 100px; flex: 1; }
+    }
   </style>
   <div id="input-controls-container">
     <div id="logo-part">
@@ -89,6 +96,9 @@ template.innerHTML = String.raw`
     </div>
 
     <div id="input-controls-right">
+      <button title="Open BAF histogram" aria-label="Open BAF histogram" id="baf-histogram-button" class="button">
+        <span class="fas ${ICONS.histogram}" aria-hidden="true"></span>
+      </button>
       <button title="Toggle chromosome view" id="chromosome-view-button" class='button'>
         <span class="fas ${ICONS.chromosomes}"></span>
       </button>
@@ -146,6 +156,7 @@ export class InputControls extends HTMLElement {
     onSearch: (query: string) => Promise<ApiSearchResult | null>,
     onChange: (settings: RenderSettings) => void,
     hasInfoWarning: boolean,
+    onOpenBafHistogram: () => void,
   ) {
     this.session = session;
     this.onOpenSettings = onOpenSettings;
@@ -157,6 +168,10 @@ export class InputControls extends HTMLElement {
     this.onPositionChange = onPositionChange;
     this.onSearch = onSearch;
     this.onChange = onChange;
+
+    (
+      this.querySelector("#baf-histogram-button") as HTMLButtonElement
+    ).onclick = onOpenBafHistogram;
 
     this.panLeftButton.onclick = () => {
       this.panLeft();

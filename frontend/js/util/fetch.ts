@@ -5,6 +5,7 @@ async function request(
   url: string,
   params: Record<string, unknown>,
   method: RequestType = "GET",
+  signal?: AbortSignal,
 ) {
   // options passed to the fetch request
   const options: RequestOptions = {
@@ -23,7 +24,7 @@ async function request(
     }
   }
   // fetch returns a promise
-  const response = await fetch(url, options);
+  const response = await fetch(url, { ...options, signal });
 
   if (response.status === 404) {
     return null;
@@ -50,8 +51,8 @@ export function objectToQueryString(obj: Record<string, unknown>): string {
   return params.toString();
 }
 
-export function get(url, params) {
-  return request(url, params);
+export function get(url, params, signal?: AbortSignal) {
+  return request(url, params, "GET", signal);
 }
 
 export function create(url, params) {

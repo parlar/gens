@@ -6,6 +6,7 @@
 * [Open the context menu](#open-the-context-menu)
 * [Annotation tracks](#annotation-tracks)
 * [Highlights](#highlights)
+* [BAF histogram](#baf-histogram)
 
 ## Tracks
 
@@ -75,6 +76,32 @@ The collapsed / expanded heights of tracks can be configured in the settings men
 Clicking any bands in the band tracks opens additional information. Here, a band in the annotation track is clicked.
 
 <img src="../img/annotations.PNG" width="800">
+
+## BAF histogram
+
+Open **BAF histogram** using the chart icon in the top toolbar. Choose a sample
+and either the **Visible interval** or an existing highlight. The visible-interval
+histogram follows navigation; choosing a highlight keeps that interval selected.
+
+The vertical axis is BAF and the horizontal axis is the number of retained sites
+in each bin. Hover over a bar for its BAF limits and site count. Adjust **Bins**
+or **BAF min/max** to inspect the distribution; these controls reuse the loaded
+sites without another request. The uppermost bin includes its upper limit;
+other bins include their lower limit and exclude their upper limit.
+
+Histograms always request resolution **d**, independently of the scatter plot's
+zoom level. Counts include both genomic interval endpoints. Non-finite fractions
+and fractions outside the chosen BAF range are excluded and counted separately.
+The default range includes BAF 0 and 1. No-data intervals and failed requests
+are shown explicitly; use the reload icon to retry. The download icon exports
+the displayed bins, counts, genomic interval, genome build, and resolution as CSV.
+
+This is a descriptive distribution, not a duplication call or confidence score.
+Resolution d contains the sites retained by the input pipeline, not every SNP or
+read. The current BAF files do not retain per-site allele depth or quality, so
+counts are not depth-weighted and the panel cannot distinguish missing-depth
+values stored as zero from measured zeros. Interpret band splitting alongside
+coverage, site selection, and available quality information.
 
 ## Annotation tracks
 
