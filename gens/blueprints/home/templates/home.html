@@ -19,7 +19,7 @@
   {{ navbar('home', version, current_user) }}
   {{ super() }}
   <script>
-    const samplesJSON = JSON.parse(`{{ samples | tojson }}`);
+    const samplesJSON = {{ samples | tojson }};
     // FIXME: Get from the backend
     const variantSoftwareBaseURL = {{ variant_software_base_url | tojson }};
     const gensBaseURL = '{{ gens_api_url | safe }}';

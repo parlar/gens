@@ -197,8 +197,13 @@ def is_docs_request_authorized(flask_app: Flask, request: Request) -> bool:
     if serializer is None:
         return False
 
+    # Mirror Flask's own session expiry so the API cannot be reached with a
+    # cookie the browser session would already have rejected.
+    lifetime = flask_app.config.get("PERMANENT_SESSION_LIFETIME")
+    max_age = int(lifetime.total_seconds()) if lifetime is not None else None
+
     try:
-        session_data = serializer.loads(session_cookie)
+        session_data = serializer.loads(session_cookie, max_age=max_age)
     except BadSignature:
         return False
 

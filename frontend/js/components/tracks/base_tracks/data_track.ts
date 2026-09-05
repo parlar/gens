@@ -216,10 +216,13 @@ export abstract class DataTrack extends CanvasTrack {
         this.renderSeq = this.renderSeq + 1;
         const mySeq = this.renderSeq;
         this.renderLoading();
-        this.renderData = await this.getRenderData();
+        const data = await this.getRenderData();
+        // A stale response must not overwrite the cached data, or a later
+        // redraw would show the previous view's data.
         if (mySeq !== this.renderSeq) {
           return;
         }
+        this.renderData = data;
         this.draw(this.renderData);
       },
       DEBOUNCE_DELAY,

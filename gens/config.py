@@ -30,6 +30,11 @@ CONFIG_PATHS = [path.resolve() for path in config_file if path.exists()]
 CONFIG_DIRS = [path.parent for path in CONFIG_PATHS]
 
 
+# Placeholder secret key. Unsafe with authentication enabled, since anyone can
+# forge a session cookie with it.
+DEFAULT_SECRET_KEY = "pass"
+
+
 class AuthMethod(Enum):
     """Valid authentication options"""
 
@@ -120,7 +125,7 @@ class Settings(BaseSettings):
         description="Sample types treated as main samples",
     )
     secret_key: str = Field(
-        default="pass",
+        default=DEFAULT_SECRET_KEY,
         description="Flask secret key used for sessions.",
     )
     session_cookie_name: str = Field(
@@ -205,6 +210,14 @@ class Settings(BaseSettings):
         if self.auth_user_db == AuthUserDb.VARIANT and self.variant_db is None:
             raise ValueError(
                 "auth_user_db='variant' requires variant_db to be configured"
+            )
+        if (
+            self.authentication != AuthMethod.DISABLED
+            and self.secret_key == DEFAULT_SECRET_KEY
+        ):
+            raise ValueError(
+                "secret_key must be set to a private value when authentication is "
+                "enabled, the default key allows anyone to forge session cookies"
             )
         return self
 

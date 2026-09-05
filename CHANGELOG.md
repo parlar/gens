@@ -13,6 +13,11 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Reject the default `secret_key` when authentication is enabled, since the published default lets anyone forge a session cookie for an existing user
+- Apply the configured session lifetime when authenticating API requests, so expired session cookies are no longer accepted there
+- Embed the samples JSON directly instead of inside a JavaScript template literal, preventing a stored case ID from executing script on the samples page
+- Discard stale data track responses before updating the cached render data, so a slow request can no longer redraw another region's data
+
 ## 4.6.2
 
 ### Changed
