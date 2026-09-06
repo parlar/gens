@@ -22,233 +22,57 @@ enum VariantSubCategory {
   MEI = "mei",
 }
 
-interface ApiAnnotationTrack {
-  track_id: string;
-  name: string;
-  description: string;
-  maintainer: string;
-  metadata: { key: string; value: string }[];
-  genome_build: number;
-}
+// Every type below describes a response body, and each is generated from the
+// API's own OpenAPI schema rather than written out again by hand. Two
+// hand-written copies of the same shape drift, and nothing tells you: the
+// annotation track id, the transcript colour and half of ApiVariantDetails had
+// all already drifted when this was introduced. Regenerate with
+// `npm run types:api`; `npm run types:api:check` fails when it is stale.
+//
+// The inline import() form is deliberate. This file has no top-level import or
+// export, which is what makes every type in it global. A top-level import
+// would turn the file into a module and hide all of them at once.
+type ApiSchemas = import("./generated/api_schema").components["schemas"];
 
-interface ApiGeneList {
-  id: string;
-  name: string;
-  version: string;
-}
+type ApiAnnotationTrack = ApiSchemas["AnnotationTrackInDb"];
+type ApiGeneList = ApiSchemas["GeneListRecord"];
+type ApiPanelGene = ApiSchemas["PanelGene"];
+type ApiPanelGenes = ApiSchemas["PanelGenes"];
+type ApiSampleAnnotationTrack = ApiSchemas["SampleAnnotationTrackInDb"];
+type ApiSearchResult = ApiSchemas["GenomicRegion"];
+type ApiSimplifiedAnnotation = ApiSchemas["SimplifiedTrackInfo"];
+type ApiSimplifiedTranscript = ApiSchemas["SimplifiedTranscriptInfo"];
+type ApiComment = ApiSchemas["Comment"];
+type ApiReference =
+  | ApiSchemas["ReferenceUrl"]
+  | ApiSchemas["ScientificArticle"];
+type ApiMetadata =
+  | ApiSchemas["GenericMetadata"]
+  | ApiSchemas["UrlMetadata"]
+  | ApiSchemas["DatetimeMetadata"]
+  | ApiSchemas["DnaStrandMetadata"];
+type ApiAnnotationDetails = ApiSchemas["AnnotationRecord"];
+type ApiSampleAnnotationDetails = ApiSchemas["SampleAnnotationRecord"];
+type ApiTranscriptFeature =
+  | ApiSchemas["ExonFeature"]
+  | ApiSchemas["UtrFeature"];
+type ApiGeneDetails = ApiSchemas["TranscriptRecord"];
+type ApiSimplifiedVariant = ApiSchemas["SimplifiedVariantRecord"];
+type ApiVariantDetails = ApiSchemas["VariantRecord"];
+type ApiHetDensityBin = ApiSchemas["HetDensityBin"];
+type ApiHetDensityTrack = ApiSchemas["HetDensityTrack"];
+type ApiSample = ApiSchemas["SampleInfo"];
+type SampleMetaValue = ApiSchemas["MetaValue"];
+type SampleMetaEntry = ApiSchemas["MetaEntry"];
+type ApiScoutSample = ApiSchemas["ScoutSampleCall"];
 
-interface ApiPanelGene {
-  symbol: string;
-  chromosome: Chromosome;
-  start: number;
-  end: number;
-  is_mane: boolean;
-}
-
-interface ApiPanelGenes {
-  panel_id: string;
-  version: string;
-  genome_build: number;
-  genes: ApiPanelGene[];
-  // Panel symbols with no transcript in this build. Shown, not dropped: a gene
-  // missing from the walk is a gene nobody looked at.
-  missing: string[];
-}
-
-interface ApiSampleAnnotationTrack {
-  // FIXME: What to do with this one
-  _id: string;
-  track_id: string;
-  sample_id: string;
-  case_id: string;
-  name: string;
-  description: string | null;
-  metadata: { key: string; value: string }[];
-  genome_build: number;
-}
-
-interface ApiSearchResult {
-  chromosome: string;
-  start: number;
-  end: number;
-}
-
-interface ApiSimplifiedAnnotation {
-  record_id: string;
-  name: string;
-  type: string;
-  start: number;
-  end: number;
-  chrom: string;
-  color: string | null;
-}
-
-interface ApiSimplifiedTranscript {
-  record_id: string;
-  name: string;
-  type: string;
-  start: number;
-  end: number;
-  strand: string;
-  color: number[] | null;
-  is_protein_coding: boolean;
-  features: {
-    feature: string;
-    start: number;
-    end: number;
-    exon_number?: number;
-  }[];
-}
-
-interface ApiComment {
-  created_at: string;
-  username: string;
-  comment: string;
-  displayed: boolean;
-}
-
-interface ApiReference {
-  title: string;
-  url: string;
-  pmid: string;
-  authors: string[];
-}
-
-interface ApiMetadata {
-  field_name: string;
-  value: string | { url: string; title: string };
-  type: string;
-}
-
-interface ApiAnnotationDetails {
-  start: number;
-  end: number;
-  track_id: string;
-  name: string;
-  description?: string;
-  genome_build: number;
-  chrom: string;
-  comments: ApiComment[];
-  references: ApiReference[];
-  metadata: ApiMetadata[];
-}
-
-interface ApiSampleAnnotationDetails extends ApiAnnotationDetails {
-  sample_id: string;
-  case_id: string;
-}
-
-interface ApiTranscriptFeature {
-  feature: string;
-  start: number;
-  end: number;
-  exon_number: number;
-}
-
-interface ApiGeneDetails {
-  transcript_id: string;
-  transcript_biotype: string;
-  gene_name: string;
-  mane: string;
-  hgnc_id: string;
-  refseq_id: string;
-  features: ApiTranscriptFeature[];
-  chrom: string;
-  start: number;
-  end: number;
-  strand: string;
-  genome_build: number;
-}
-
-interface ApiScoutSample {
-  allele_depths: [number, number];
-  alt_frequency: number;
-  display_name: string;
-  genotype_call: string;
-  sample_id: string;
-  read_depth: number;
-  split_read: number;
-  genotype_quality: number;
-}
-
-interface SampleMetaValue {
-  type: string;
-  value: string;
-  row_name?: string;
-  color: string;
-}
-
-interface SampleMetaEntry {
-  id: string;
-  file_name: string;
-  row_name_header?: string;
-  data: SampleMetaValue[];
-}
-
-interface ApiSimplifiedVariant {
-  document_id: string;
-  start: number;
-  end: number;
-  variant_type: string; // e.g. research, clinical
-  category: VariantCategory;
-  sub_category: VariantSubCategory;
-  genotype: string;
-}
-
-interface ApiVariantDetails {
-  alternative: string;
-  cadd_score: string;
-  case_id: string;
-  category: VariantCategory;
-  chromosome: string;
-  cytoband_start: string;
-  cytoband_end: string;
-  display_name: string;
-  document_id: string;
-  end: number;
-  end_chrom: string;
-  filters: string[];
-  gatk: string;
-  hgnc_ids: string[];
-  hgnc_symbols: string[];
-  genes: string[];
-  length: number;
-  missing_data: boolean;
-  panels: string[];
-  phast_conservation: string[];
-  phylop_conservation: string[];
-  start: number;
-  quality: number;
-  rank_score: number | null;
-  rank_score_results: { category: string; score: number }[];
-  reference: string;
-  sample?: ApiScoutSample;
-  samples: ApiScoutSample[];
-  simple_id: string;
-  sub_category: VariantSubCategory;
-  variant_id: string;
-  variant_rank: number;
-  variant_type: string;
-}
-
+// Despite the name, these two are not response bodies and so are not
+// generated. The coverage endpoint returns ApiSchemas["GenomeCoverage"], which
+// is a pair of parallel arrays; api.ts zips them into these before anything
+// else sees them.
 interface ApiCoverageDot {
   pos: number;
   value: number;
-}
-
-interface ApiHetDensityBin {
-  start: number;
-  end: number;
-  observed: number;
-}
-
-interface ApiHetDensityTrack {
-  chromosome: string;
-  bin_size: number;
-  het_range: [number, number];
-  baseline: number;
-  minimum_baseline: number;
-  bins: ApiHetDensityBin[];
 }
 
 interface ApiCoverageBin {
@@ -351,31 +175,7 @@ interface AnnotationTrackData {
   annotation: { source: string; bands: RenderBand[] };
 }
 
-type Chromosome =
-  | "1"
-  | "2"
-  | "3"
-  | "4"
-  | "5"
-  | "6"
-  | "7"
-  | "8"
-  | "9"
-  | "10"
-  | "11"
-  | "12"
-  | "13"
-  | "14"
-  | "15"
-  | "16"
-  | "17"
-  | "18"
-  | "19"
-  | "20"
-  | "21"
-  | "22"
-  | "X"
-  | "Y";
+type Chromosome = ApiSchemas["Chromosome"];
 
 interface BandTrackData {
   // xRange: Rng;
@@ -768,21 +568,6 @@ interface RangeHighlight {
   chromosome: Chromosome;
   range: Rng;
   color: string;
-}
-
-interface ApiSample {
-  baf_file: string;
-  baf_index: string;
-  case_id: string;
-  display_case_id?: string | null;
-  coverage_file: string;
-  coverage_index: string;
-  created_at: string;
-  genome_build: number;
-  sample_id: string;
-  sample_type?: string;
-  sex?: string;
-  meta: SampleMetaEntry[];
 }
 
 interface SampleIdentifier {

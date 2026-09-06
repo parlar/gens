@@ -9,10 +9,16 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Generate the frontend's `Api*` types from the API's own OpenAPI schema (`npm run types:api`), with `npm run types:api:check` failing in CI when they go stale
+
 ### Changed
 
 ### Fixed
 
+- Send the annotation track id as `track_id` from the sample annotation tracks endpoint too, instead of `_id`, so the two sibling endpoints agree and the published schema describes what is actually sent
+- Show a variant's allele depths in its tooltip: they were read from a `sample` field the API does not return, so the row was always empty
+- Stop the variant tooltip throwing when the viewed sample has no genotype call on that variant
+- Publish `cadd_score`, `cytoband_start`, `cytoband_end` and the per-sample genotype call fields in the variant schema, which `extra="allow"` had let through undeclared
 - Reject the default `secret_key` when authentication is enabled, since the published default lets anyone forge a session cookie for an existing user
 - Apply the configured session lifetime when authenticating API requests, so expired session cookies are no longer accepted there
 - Embed the samples JSON directly instead of inside a JavaScript template literal, preventing a stored case ID from executing script on the samples page

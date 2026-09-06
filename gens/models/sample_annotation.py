@@ -26,4 +26,7 @@ class SampleAnnotationTrack(RWModel, CreatedAtModel, ModifiedAtModel):
 
 # FIXME: Dig into this. Why is this one separate from the one above?
 class SampleAnnotationTrackInDb(SampleAnnotationTrack):
-    track_id: PydanticObjectId = Field(alias="_id")
+    # Sent as track_id, matching AnnotationTrackInDb. It used to go out as _id
+    # while its sibling route sent track_id, and the frontend copied one onto
+    # the other on arrival.
+    track_id: PydanticObjectId = Field(validation_alias="_id")

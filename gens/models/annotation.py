@@ -120,7 +120,11 @@ class AnnotationTrack(RWModel, CreatedAtModel, ModifiedAtModel):
 class AnnotationTrackInDb(AnnotationTrack):
     """Database representation of annotation track."""
 
-    track_id: PydanticObjectId = Field(alias="_id")
+    # Read from Mongo's _id, but sent to the API as track_id. A plain alias=
+    # would rename it in both directions, and then the published schema says
+    # _id while the route sends track_id, so the generated frontend types
+    # describe a response the server never sends.
+    track_id: PydanticObjectId = Field(validation_alias="_id")
 
 
 class ExonFeature(RWModel):
@@ -220,6 +224,27 @@ class SimplifiedVariantRecord(RWModel):
     genotype: str | None = None
 
 
+class ScoutSampleCall(RWModel):
+    """One sample's genotype call on a variant.
+
+    Every field is optional. These come straight out of Scout's variant
+    documents, which are written by several pipelines and do not all carry the
+    same keys; a required field here would turn a missing key into a 500 on the
+    whole variant-details route. extra="allow" keeps the keys not named here.
+    """
+
+    sample_id: str | None = None
+    display_name: str | None = None
+    genotype_call: str | None = None
+    allele_depths: list[int] = Field(default_factory=list)
+    read_depth: int | None = None
+    genotype_quality: int | None = None
+    alt_frequency: float | None = None
+    split_read: int | None = None
+
+    model_config = ConfigDict(extra="allow")
+
+
 class VariantRecord(RWModel):
     """Detailed variant info for rendering variant tooltips.
 
@@ -261,7 +286,7 @@ class VariantRecord(RWModel):
     )
     quality: float = 0
     filters: list[str] = Field(default_factory=list)
-    samples: list[dict[str, Any]] = Field(
+    samples: list[ScoutSampleCall] = Field(
         default_factory=list, description="Contain <gt_calls> objects"
     )
     genetic_models: list[str] = Field(
@@ -292,6 +317,13 @@ class VariantRecord(RWModel):
     ccv_classification: str | None = Field(
         None, description="Manual CCV classification of variant"
     )
+    # The tooltip shows these three. extra="allow" let them through undeclared,
+    # which meant they were absent from the published schema and so from the
+    # generated frontend types. Typed loosely on purpose: they are whatever
+    # Scout wrote, and a validation error here would take out the whole route.
+    cadd_score: float | str | None = None
+    cytoband_start: str | None = None
+    cytoband_end: str | None = None
 
     model_config = ConfigDict(
         extra="allow",

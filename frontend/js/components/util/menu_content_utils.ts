@@ -22,14 +22,13 @@ export function getVariantContextMenuContent(
     },
     {
       key: "Genotype call",
-      value: sample ? sample.genotype_call : "-",
+      value: sample?.genotype_call ?? "-",
     },
     {
       key: "Allele depths",
-      value:
-        sample && details.sample?.allele_depths
-          ? details.sample.allele_depths.join(", ")
-          : null,
+      value: sample?.allele_depths?.length
+        ? sample.allele_depths.join(", ")
+        : null,
     },
     {
       key: "Read depth",
@@ -41,7 +40,7 @@ export function getVariantContextMenuContent(
     },
     {
       key: "Split read",
-      value: sample.split_read,
+      value: sample?.split_read ?? null,
     },
     { key: "CADD score", value: details.cadd_score },
     {

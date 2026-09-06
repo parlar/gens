@@ -48,7 +48,7 @@ from .utils import AdapterDep, ApiTags, GensDb
 router = APIRouter(prefix="/tracks")
 
 
-@router.get("/annotations", tags=[ApiTags.ANNOT], response_model_by_alias=False)
+@router.get("/annotations", tags=[ApiTags.ANNOT])
 def get_annotations_tracks(
     genome_build: GenomeBuild | None, db: GensDb
 ) -> list[AnnotationTrackInDb]:

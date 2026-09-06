@@ -166,20 +166,10 @@ export class API {
       sample_id: id.sampleId,
       genome_build: id.genomeBuild,
     };
-    const sources = get(
+    return get(
       new URL("sample-tracks/annotations", this.apiURI).href,
       query,
-    ).then((result) => {
-      if (result == null) {
-        return [];
-      }
-      // FIXME: Temporary solution. Fix this backend.
-      return result.map((source) => {
-        source.track_id = source._id;
-        return source;
-      });
-    });
-    return sources;
+    ).then((result) => result ?? []);
   }
 
   private sampleAnnotsCache: Record<
