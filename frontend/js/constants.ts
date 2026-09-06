@@ -36,6 +36,7 @@ export const ANIM_TIME = {
 };
 
 export const ICONS = {
+  connections: "fa-code-branch",
   chromosomes: "fa-chart-bar",
   collapse: "fa-minimize",
   down: "fa-arrow-down",

@@ -4,12 +4,16 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
+from gens.bedpe import MAX_EVIDENCE_WINDOW, get_read_evidence
 from gens.crud import samples
 from gens.crud.het_density import get_het_density
+from gens.crud.read_evidence import get_evidence_source
 from gens.db.collections import SAMPLES_COLLECTION
+from gens.exceptions import SampleNotFoundError
 from gens.io import get_overview_from_tabix, get_scatter_data
 from gens.models.genomic import Chromosome, GenomeBuild, GenomicRegion
 from gens.models.het_density import HetDensityTrack
+from gens.models.read_evidence import ReadEvidence
 from gens.models.sample import (
     GenomeCoverage,
     MultipleSamples,
@@ -45,6 +49,52 @@ async def get_sample_route(
         genome_build=genome_build,
     )
     return sample_info
+
+
+@router.get("/sample/read-evidence", tags=[ApiTags.SAMPLE])
+def get_sample_read_evidence(
+    sample_id: str,
+    case_id: str,
+    genome_build: GenomeBuild,
+    chromosome: Chromosome,
+    db: GensDb,
+    start: int = Query(..., ge=1),
+    end: int = Query(..., ge=1),
+    minimum_mapq: int = Query(0, ge=0, le=254),
+    minimum_fragments: int = Query(0, ge=0),
+    kind: Literal["all", "split", "pair", "call", "unknown"] = "all",
+) -> ReadEvidence:
+    """Query the compact dual-endpoint index registered for this sample."""
+    if end < start or end - start + 1 > MAX_EVIDENCE_WINDOW:
+        raise HTTPException(
+            422, f"Select an interval of at most {MAX_EVIDENCE_WINDOW:,} bases"
+        )
+    try:
+        source = get_evidence_source(db, sample_id, case_id, genome_build)
+    except SampleNotFoundError as error:
+        raise HTTPException(404, "Sample not found") from error
+    if source is None:
+        raise HTTPException(
+            404, "No compact evidence file is registered for this sample"
+        )
+    try:
+        result = get_read_evidence(
+            source.path,
+            chromosome,
+            start,
+            end,
+            genome_build,
+            minimum_mapq=minimum_mapq,
+            minimum_fragments=minimum_fragments,
+            kind=kind,
+        )
+        result.source_label = source.label
+        return result
+    except (OSError, ValueError) as error:
+        raise HTTPException(
+            422,
+            "Cannot read evidence. Verify the registered compact file, index and genome build.",
+        ) from error
 
 
 #: A wider request would bin the whole genome on every pan. The frontend only

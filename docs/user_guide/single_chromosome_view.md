@@ -7,6 +7,7 @@
 * [Annotation tracks](#annotation-tracks)
 * [Highlights](#highlights)
 * [BAF histogram](#baf-histogram)
+* [Read connections](#read-connections)
 
 ## Tracks
 
@@ -102,6 +103,32 @@ read. The current BAF files do not retain per-site allele depth or quality, so
 counts are not depth-weighted and the panel cannot distinguish missing-depth
 values stored as zero from measured zeros. Interpret band splitting alongside
 coverage, site selection, and available quality information.
+
+## Read connections
+
+Open **Read connections** using the branch icon in the top toolbar. Select a
+sample and the visible interval or a saved highlight. This panel requires a
+[registered compact BEDPE source](../admin_guide/read_connections.md), not BAM/CRAM.
+
+The arcs and connection table distinguish split alignments, read pairs, SV calls,
+and unspecified links. Select an arc or connection name to see both endpoint
+intervals and orientations, the source file label, and reported fragment counts
+and minimum MAPQ. Missing support is shown as **Not reported**, not zero.
+
+Endpoints outside the window or on another chromosome have hollow markers;
+interchromosomal connections use the separate **Off-view** endpoint. Interval
+bars preserve the supplied endpoint ranges. Arc midpoints are layout anchors,
+not refined breakpoints. Use either endpoint's arrow button to inspect that
+location in the main viewer with BAF and coverage. Navigation switches back to
+the visible interval. Contigs unavailable in the loaded genome cannot be opened.
+
+Filter by evidence type or reported minimum support/MAPQ. Positive numeric
+filters exclude records with unknown values. Page through connections when
+there are more than fit in one view. Query limits show a **Partial results**
+warning; narrow the interval to inspect more evidence.
+
+These are imported connections, not automatic SV calls. No read sequences or
+base-level alignment detail are available in the compact files.
 
 ## Annotation tracks
 

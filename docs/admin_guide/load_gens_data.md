@@ -85,6 +85,10 @@ Notes:
 * Without `--force`, Gens asks for confirmation before overwriting existing metadata.
 * Repeat the command with a different `--meta` file to update multiple metadata files.
 
+For optional compact paired-read, split-alignment, or SV-call connections, see
+[Compact read connections](./read_connections.md). This input does not require
+BAM/CRAM files on the Gens server.
+
 ### Loading a full case
 
 Alternatively, you can load a full case from a Gens YAML file.

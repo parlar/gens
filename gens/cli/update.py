@@ -6,14 +6,18 @@ from pathlib import Path
 
 import click
 
+from gens.bedpe import prepare_read_evidence
 from gens.cli.util import db as cli_db
 from gens.cli.util.util import ChoiceType, normalize_sample_type
+from gens.crud.read_evidence import get_evidence_source, register_evidence_source
 from gens.crud.samples import get_sample, update_sample
 from gens.db.collections import (
     SAMPLES_COLLECTION,
 )
+from gens.exceptions import SampleNotFoundError
 from gens.load.meta import parse_meta_file
 from gens.models.genomic import GenomeBuild
+from gens.models.read_evidence import EvidenceSource
 from gens.models.sample import SampleInfo, SampleSex
 
 log_level = getenv("LOG_LEVEL", "INFO").upper()
@@ -26,6 +30,51 @@ LOG = logging.getLogger(__name__)
 @click.group()
 def update() -> None:
     """Update information in Gens database"""
+
+
+@update.command("read-evidence")
+@click.option("--sample-id", required=True)
+@click.option("--case-id", required=True)
+@click.option("--genome-build", type=ChoiceType(GenomeBuild), required=True)
+@click.option(
+    "--file",
+    "evidence_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="BEDPE or BEDPE.gz input",
+)
+@click.option(
+    "--output",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="New indexed .gz file accessible to the Gens server",
+)
+@click.option(
+    "--remove", is_flag=True, help="Unregister evidence without deleting files"
+)
+def read_evidence(
+    sample_id: str,
+    case_id: str,
+    genome_build: GenomeBuild,
+    evidence_file: Path | None,
+    output: Path | None,
+    remove: bool,
+) -> None:
+    """Import compact BEDPE connections for a sample; no BAM/CRAM is required."""
+    if remove and (evidence_file is not None or output is not None):
+        raise click.UsageError("Use --remove without --file or --output")
+    if not remove and (evidence_file is None or output is None):
+        raise click.UsageError("Provide both --file and --output, or use --remove")
+    try:
+        db = cli_db.get_cli_db([SAMPLES_COLLECTION])
+        get_evidence_source(db, sample_id, case_id, genome_build)
+        source = None
+        if evidence_file is not None and output is not None:
+            count = prepare_read_evidence(evidence_file, output, genome_build)
+            source = EvidenceSource(path=output.resolve(), label=evidence_file.name)
+            click.echo(f"Indexed {count} connections from both endpoints")
+        register_evidence_source(db, sample_id, case_id, genome_build, source)
+    except (OSError, ValueError, SampleNotFoundError) as error:
+        raise click.ClickException(str(error)) from error
+    click.echo("Evidence source removed" if remove else "Evidence source registered")
 
 
 @update.command()

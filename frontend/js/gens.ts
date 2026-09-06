@@ -31,6 +31,8 @@ import {
 } from "./components/side_menu/settings_menu";
 import { InfoMenu } from "./components/side_menu/info_menu";
 import { BafHistogramPanel } from "./components/side_menu/baf_histogram";
+import { ReadConnectionsPanel } from "./components/side_menu/read_connections";
+import { endpointRegion } from "./util/read_connections";
 import { HeaderInfo } from "./components/header_info";
 import { GensSession } from "./state/gens_session";
 import { GensHome } from "./home/gens_home";
@@ -113,6 +115,7 @@ export async function initCanvases({
   const infoPage = document.createElement("info-page") as InfoMenu;
   const helpPage = document.createElement("help-page") as HelpMenu;
   const histogramPage = new BafHistogramPanel();
+  const connectionsPage = new ReadConnectionsPanel();
   const headerInfo = document.getElementById("header-info") as HeaderInfo;
 
   // FIXME: This will need to be adapted when more software are introduced
@@ -137,6 +140,7 @@ export async function initCanvases({
     inputControls.render(settings);
     if (sideMenu.hasAttribute("drawer-open")) {
       histogramPage.render();
+      connectionsPage.render();
     }
 
     if (settings.saveLayoutChange) {
@@ -241,6 +245,24 @@ export async function initCanvases({
       api.getBafHistogramData(sample, region, signal),
   });
 
+  connectionsPage.setSources({
+    getSamples: () => session.getSamples(),
+    getMainSample: () => session.getMainSample(),
+    getRegion: () => session.pos.getRegion(),
+    getHighlights: () => session.getAllHighlights(),
+    getSampleLabel: (sample) => session.getDisplaySampleLabel(sample),
+    loadData: (sample, region, filters, signal) =>
+      api.getReadEvidence(sample, region, filters, signal),
+    canNavigate: (endpoint) => endpointRegion(endpoint, session.pos.getChromSizes()) != null,
+    navigate: (endpoint) => {
+      const region = endpointRegion(endpoint, session.pos.getChromSizes());
+      if (region == null) return;
+      const chromosomeChange = region.chrom !== session.pos.getChromosome();
+      session.pos.setChromosome(region.chrom, [region.start, region.end]);
+      render({ reloadData: true, positionOnly: !chromosomeChange, chromosomeChange });
+    },
+  });
+
   headerInfo.setCaseLabel(session.getDisplayCaseLabel(caseId, displayCaseId));
 
   const getSearchResults = (query: string) => {
@@ -261,6 +283,7 @@ export async function initCanvases({
     getSearchResults,
     () =>
       sideMenu.showContent("BAF histogram", [histogramPage], STYLE.menu.width),
+    () => sideMenu.showContent("Read connections", [connectionsPage], 650),
   );
 
   await gensTracks.initializeTrackView(
@@ -284,6 +307,7 @@ function initializeInputControls(
   helpPage: HelpMenu,
   getSearchResults: (query: string) => Promise<ApiSearchResult>,
   onOpenBafHistogram: () => void,
+  onOpenReadConnections: () => void,
 ) {
   const showBadge = session.hasMetaWarnings();
 
@@ -325,6 +349,7 @@ function initializeInputControls(
     onChange,
     showBadge,
     onOpenBafHistogram,
+    onOpenReadConnections,
   );
 }
 

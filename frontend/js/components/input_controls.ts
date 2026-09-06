@@ -96,6 +96,9 @@ template.innerHTML = String.raw`
     </div>
 
     <div id="input-controls-right">
+      <button title="Open read connections" aria-label="Open read connections" id="read-connections-button" class="button">
+        <span class="fas ${ICONS.connections}" aria-hidden="true"></span>
+      </button>
       <button title="Open BAF histogram" aria-label="Open BAF histogram" id="baf-histogram-button" class="button">
         <span class="fas ${ICONS.histogram}" aria-hidden="true"></span>
       </button>
@@ -157,6 +160,7 @@ export class InputControls extends HTMLElement {
     onChange: (settings: RenderSettings) => void,
     hasInfoWarning: boolean,
     onOpenBafHistogram: () => void,
+    onOpenReadConnections: () => void,
   ) {
     this.session = session;
     this.onOpenSettings = onOpenSettings;
@@ -172,6 +176,9 @@ export class InputControls extends HTMLElement {
     (
       this.querySelector("#baf-histogram-button") as HTMLButtonElement
     ).onclick = onOpenBafHistogram;
+    (
+      this.querySelector("#read-connections-button") as HTMLButtonElement
+    ).onclick = onOpenReadConnections;
 
     this.panLeftButton.onclick = () => {
       this.panLeft();

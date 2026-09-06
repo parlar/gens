@@ -1,0 +1,6 @@
+# Synthetic connections only. BEDPE10 followed by kind, fragments, minimum_mapq.
+1	299999	300000	1	599999	600000	synthetic-split	0	+	+	split	12	50
+1	299849	299950	1	600000	600101	synthetic-pairs	0	-	+	pair	6	35
+1	449999	450000	2	199999	200000	synthetic-interchromosomal	0	+	-	split	4	40
+1	399999	410000	1	699999	710000	synthetic-call	900	.	.	call	.	.
+1	349999	350100	1	350499	350600	synthetic-unspecified	700	.	.

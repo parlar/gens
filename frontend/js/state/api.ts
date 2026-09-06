@@ -2,6 +2,7 @@ import { CHROMOSOMES, IDB_CACHE } from "../constants";
 import { get } from "../util/fetch";
 import { idbGet, idbSet } from "../util/indexeddb";
 import { getSampleKey, zip } from "../util/utils";
+import { EvidenceFilters, ReadEvidence } from "../util/read_connections";
 
 // Data for these are loaded up front for the full chromosome
 // Remaining zoom levels (up to "d") are loaded dynamically and
@@ -445,7 +446,7 @@ export class API {
     this.transcriptCache[cacheKey] = promise;
     return promise;
   }
-  
+
   private cachedThreshold: number;
   private variantsSampleChromCache: Record<
     string,
@@ -490,7 +491,8 @@ export class API {
       };
       const url = new URL("tracks/variants", this.apiURI).href;
       const variants = get(url, query) as Promise<ApiSimplifiedVariant[]>;
-      this.variantsSampleChromCache[sampleKey][categoryChromCacheKey] = variants;
+      this.variantsSampleChromCache[sampleKey][categoryChromCacheKey] =
+        variants;
     }
     return this.variantsSampleChromCache[sampleKey][categoryChromCacheKey];
   }
@@ -612,8 +614,32 @@ export class API {
     }
 
     return filterRange(
-      result.position.map((pos, index) => ({ pos, value: result.value[index] })),
+      result.position.map((pos, index) => ({
+        pos,
+        value: result.value[index],
+      })),
       [region.start, region.end],
+    );
+  }
+
+  getReadEvidence(
+    id: SampleIdentifier,
+    region: Region,
+    filters: EvidenceFilters,
+    signal?: AbortSignal,
+  ): Promise<ReadEvidence | null> {
+    return get(
+      new URL("samples/sample/read-evidence", this.apiURI).href,
+      {
+        sample_id: id.sampleId,
+        case_id: id.caseId,
+        genome_build: id.genomeBuild,
+        chromosome: region.chrom,
+        start: region.start,
+        end: region.end,
+        ...filters,
+      },
+      signal,
     );
   }
 

@@ -65,4 +65,19 @@ describe("BAF histogram requests", () => {
     ).rejects.toThrow("Invalid BAF histogram interval");
     expect(mockGet).not.toHaveBeenCalled();
   });
+
+  test("requests compact evidence with inclusive coordinates and no file path", async () => {
+    mockGet.mockResolvedValue(null);
+    const signal = new AbortController().signal;
+    const filters = { kind: "pair" as const, minimum_mapq: 20, minimum_fragments: 3 };
+    await expect(api.getReadEvidence(sample, region, filters, signal)).resolves.toBeNull();
+    expect(mockGet).toHaveBeenCalledWith(
+      "https://example.org/gens/api/samples/sample/read-evidence",
+      {
+        sample_id: "sample&A", case_id: "case", genome_build: 38,
+        chromosome: "1", start: 100, end: 200, ...filters,
+      },
+      signal,
+    );
+  });
 });
