@@ -1,4 +1,5 @@
 import {
+  HET_DENSITY_MAX_WINDOW,
   HET_DENSITY_Y_RANGE,
   STYLE,
   VARIANT_COLORS,
@@ -82,22 +83,38 @@ export function getRenderDataSource(
     chrom: string,
   ): Promise<DotTrackData> => {
     const xRange = getXRange();
+
+    // Saying the track is unavailable, and why, rather than drawing an empty
+    // one. An empty track and a broken track look identical otherwise.
+    const unavailable = (label: string): DotTrackData => ({
+      dots: [],
+      shaded: [
+        {
+          start: xRange[0],
+          end: xRange[1],
+          color: STYLE.colors.lightGray,
+          label,
+        },
+      ],
+    });
+
+    // The endpoint refuses a wider region, so asking would raise instead of
+    // drawing. A whole chromosome is wider than this, which is the view the
+    // user lands on, so the guard has to be here rather than in an error path.
+    if (xRange[1] - xRange[0] > HET_DENSITY_MAX_WINDOW) {
+      return unavailable(
+        `Zoom in below ${HET_DENSITY_MAX_WINDOW / 1_000_000} Mb to see heterozygote density`,
+      );
+    }
+
     const track = await api.getHetDensity(id, chrom, xRange);
 
     if (track.baseline < track.minimum_baseline) {
       // A chromosome whose typical bin holds a handful of sites cannot support
       // a ratio at all. Saying so beats plotting one.
-      return {
-        dots: [],
-        shaded: [
-          {
-            start: xRange[0],
-            end: xRange[1],
-            color: STYLE.colors.lightGray,
-            label: "Too few heterozygous sites on this chromosome to scale",
-          },
-        ],
-      };
+      return unavailable(
+        "Too few heterozygous sites on this chromosome to scale",
+      );
     }
 
     const [low, high] = HET_DENSITY_Y_RANGE;

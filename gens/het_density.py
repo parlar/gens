@@ -109,11 +109,16 @@ def chromosome_baseline(
 ) -> float:
     """The sample's typical bin on this chromosome: the median over every bin.
 
-    Empty bins are counted rather than skipped. Dropping them would define the
-    typical bin as the typical *callable* bin, which raises the scale and makes
-    every uncallable stretch look depleted; that is the failure this scale exists
-    to avoid. The median rather than the mean so that a real event, or a handful
-    of very dense bins, does not move it.
+    Empty bins are counted rather than skipped. Skipping them would define the
+    typical bin as the typical *callable* bin, raising the scale so that every
+    ordinary low-density stretch reads as depleted against it. That is the only
+    thing counting them buys. It does not rescue a bin that is genuinely empty:
+    a count of zero has no logarithm and sits on the floor of the axis whatever
+    the scale is, so an uncallable bin and a deleted one still look identical.
+    Nothing in this module separates them, which is why the track carries no
+    call and has to be read beside the coverage track. The median rather than
+    the mean so that a real event, or a handful of very dense bins, does not
+    move it.
 
     Scanning a whole chromosome costs about a quarter of a second for chromosome
     1 at 20 kb bins, measured on a 29x WGS sample.

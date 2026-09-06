@@ -296,4 +296,10 @@ export const BAF_Y_RANGE: [number, number] = [0, 1];
 // visible, and bounded because heterozygote density varies by more than an order
 // of magnitude across a chromosome for reasons that are not copy number.
 export const HET_DENSITY_Y_RANGE: [number, number] = [-4, 4];
+// Widest region the het-density endpoint will serve, mirroring
+// MAX_HET_DENSITY_WINDOW in gens/routes/sample.py. The endpoint refuses a wider
+// request with 416, so asking for one produces an error rather than a track;
+// above this the frontend says the track is unavailable instead of asking.
+// tests/test_het_density.py asserts the two numbers still agree.
+export const HET_DENSITY_MAX_WINDOW = 20_000_000;
 export const DEFAULT_COV_Y_RANGE: [number, number] = [-3, 3];

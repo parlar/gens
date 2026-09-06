@@ -1,6 +1,10 @@
+import re
+from pathlib import Path
+
 import pysam
 import pytest
 
+from gens.crud.het_density import _baseline_key
 from gens.het_density import (
     DEFAULT_BIN_SIZE,
     bin_range,
@@ -9,6 +13,8 @@ from gens.het_density import (
     leave_one_out_reference,
     panel_reference,
 )
+from gens.models.genomic import GenomeBuild
+from gens.routes.sample import MAX_HET_DENSITY_WINDOW
 
 BIN = 1000
 
@@ -154,3 +160,53 @@ def test_chromosome_baseline_ignores_homozygous_sites(tmp_path):
 def test_chromosome_baseline_of_a_missing_contig_is_zero(tmp_path):
     tabix = write_baf(tmp_path, "chr1only2", [(10, 0.5)])
     assert chromosome_baseline(tabix, "22", 5000, bin_size=BIN) == 0.0
+
+
+def test_baseline_key_separates_genome_builds(tmp_path):
+    # The build selects the sample document and sets the chromosome length,
+    # which sets how many empty bins enter the median. Two builds of one sample
+    # have genuinely different baselines, so they must not share a cache entry.
+    baf = tmp_path / "sample.baf.bed.gz"
+    baf.write_bytes(b"x")
+    args = ("NA12879", "pedigree", None, "1", BIN, baf)
+    key37 = _baseline_key(*args[:2], GenomeBuild.HG37, *args[3:])
+    key38 = _baseline_key(*args[:2], GenomeBuild.HG38, *args[3:])
+    assert key37 != key38
+
+
+def test_baseline_key_changes_when_the_baf_file_is_replaced(tmp_path):
+    # A sample can be reloaded against new data under the same identifiers.
+    # Without the file fingerprint the process would keep scaling the new data
+    # by the old file's median until it restarted.
+    baf = tmp_path / "sample.baf.bed.gz"
+    baf.write_bytes(b"first")
+    before = _baseline_key(
+        "NA12879", "pedigree", GenomeBuild.HG38, "1", BIN, baf
+    )
+    baf.write_bytes(b"second and longer")
+    after = _baseline_key("NA12879", "pedigree", GenomeBuild.HG38, "1", BIN, baf)
+    assert before != after
+
+
+def test_baseline_key_is_stable_for_the_same_request(tmp_path):
+    # A key that changed between identical requests would make the cache a
+    # memory leak that never hits.
+    baf = tmp_path / "sample.baf.bed.gz"
+    baf.write_bytes(b"x")
+    args = ("NA12879", "pedigree", GenomeBuild.HG38, "1", BIN, baf)
+    assert _baseline_key(*args) == _baseline_key(*args)
+
+
+def test_frontend_and_backend_agree_on_the_window_limit():
+    # The frontend refuses to ask above this limit and the endpoint refuses to
+    # answer above it. If the two numbers drift apart, either whole views break
+    # with an HTTP error or a servable region is withheld.
+    constants = (
+        Path(__file__).resolve().parents[1] / "frontend/js/constants.ts"
+    ).read_text()
+    match = re.search(
+        r"HET_DENSITY_MAX_WINDOW\s*=\s*([0-9_]+)\s*;",
+        constants,
+    )
+    assert match is not None, "HET_DENSITY_MAX_WINDOW is gone from constants.ts"
+    assert int(match.group(1).replace("_", "")) == MAX_HET_DENSITY_WINDOW

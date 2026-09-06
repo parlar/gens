@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from pymongo.database import Database
@@ -26,9 +27,43 @@ LOG = logging.getLogger(__name__)
 #: ratio at all, so the client is told the scale rather than left to divide by it.
 MINIMUM_BASELINE = 5.0
 
-#: Chromosome baselines are a fixed property of (sample, chromosome, bin size)
-#: and cost a whole-chromosome scan, so they are computed once per process.
-_BASELINE_CACHE: dict[tuple[str, str, str, int], float] = {}
+#: Chromosome baselines cost a whole-chromosome scan, so they are computed once
+#: per process. The key must name everything the value depends on, or a later
+#: request is scaled by another sample's chromosome. See `_baseline_key`.
+_BASELINE_CACHE: dict[tuple[str, str, int, str, int, str], float] = {}
+
+
+def _baseline_key(
+    sample_id: str,
+    case_id: str,
+    genome_build: GenomeBuild,
+    chromosome: Chromosome,
+    bin_size: int,
+    baf_file: Path,
+) -> tuple[str, str, int, str, int, str]:
+    """Everything the baseline depends on, so a stale one cannot be served.
+
+    The genome build belongs here twice over: it selects the sample document,
+    and it sets the chromosome length, which sets how many empty bins enter the
+    median. Two builds of one sample therefore have genuinely different
+    baselines, and keying without the build served whichever was requested
+    first.
+
+    The file's identity, size and modification time are here because a sample
+    can be reloaded against a new BAF file under the same identifiers. Without
+    them the process would keep scaling the new data by the old file's median
+    until it restarted.
+    """
+    stat = baf_file.stat()
+    fingerprint = f"{baf_file}:{stat.st_size}:{stat.st_mtime_ns}"
+    return (
+        sample_id,
+        case_id,
+        int(genome_build),
+        str(chromosome),
+        bin_size,
+        fingerprint,
+    )
 
 
 def get_het_density(
@@ -57,7 +92,9 @@ def get_het_density(
         raise ValueError(f"no size known for chromosome {chromosome}")
 
     first_bin, last_bin = bin_range(start, end, bin_size)
-    key = (sample_id, case_id, str(chromosome), bin_size)
+    key = _baseline_key(
+        sample_id, case_id, genome_build, chromosome, bin_size, Path(sample.baf_file)
+    )
 
     with TabixFile(str(sample.baf_file)) as tabix:
         if key not in _BASELINE_CACHE:
