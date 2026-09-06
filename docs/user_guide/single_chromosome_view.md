@@ -81,8 +81,12 @@ Clicking any bands in the band tracks opens additional information. Here, a band
 ## BAF histogram
 
 Open **BAF histogram** using the chart icon in the top toolbar. Choose a sample
-and either the **Visible interval** or an existing highlight. The visible-interval
-histogram follows navigation; choosing a highlight keeps that interval selected.
+and an interval: the **Visible interval**, an existing highlight, or **Region I
+type**, which accepts coordinates written as `1:100000-200000`. Thousands
+separators and a `chr` prefix are accepted, so coordinates can be pasted from
+elsewhere. The visible-interval histogram follows navigation; a highlight or a
+typed region stays put. Nothing is measured while a typed region is unusable,
+and the panel says what is wrong with it.
 
 The vertical axis is BAF and the horizontal axis is the number of retained sites
 in each bin. Hover over a bar for its BAF limits and site count. Adjust **Bins**

@@ -134,6 +134,88 @@ describe("BAF histogram panel", () => {
     expect(signal.aborted).toBe(true);
   });
 
+  const typeRegion = (value: string) => {
+    const input = panel.shadowRoot.querySelector(
+      "#custom-region",
+    ) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event("change"));
+  };
+  const regionError = () =>
+    panel.shadowRoot.querySelector("#region-validation") as HTMLElement;
+
+  test("measures a region the reader types, not only the visible one", async () => {
+    await flush();
+    loadData.mockClear();
+    select("#interval", "custom");
+    typeRegion("2:1,000-2,000");
+    await flush();
+
+    expect(loadData).toHaveBeenCalledWith(
+      samples[0],
+      { chrom: "2", start: 1000, end: 2000 },
+      expect.anything(),
+    );
+    expect(regionError().hidden).toBe(true);
+  });
+
+  test("starts the typed region from where the reader is looking", async () => {
+    await flush();
+    select("#interval", "custom");
+    await flush();
+    const input = panel.shadowRoot.querySelector(
+      "#custom-region",
+    ) as HTMLInputElement;
+    // Shows the format by example, so a small edit is enough to get going.
+    expect(input.value).toBe("1:100-200");
+  });
+
+  test("measures nothing while the typed region is unusable", async () => {
+    await flush();
+    select("#interval", "custom");
+    typeRegion("2:5000-1000");
+    await flush();
+    loadData.mockClear();
+    await flush();
+
+    // Drawing the previous region under the new label would be a wrong answer,
+    // not a stale one.
+    expect(loadData).not.toHaveBeenCalled();
+    expect(regionError().hidden).toBe(false);
+    expect(regionError().textContent).toMatch(/end must not come before/);
+    expect(panel.shadowRoot.querySelector("#region").textContent).toBe("");
+  });
+
+  test("recovers once the region is corrected", async () => {
+    await flush();
+    select("#interval", "custom");
+    typeRegion("banana:1-2");
+    await flush();
+    expect(regionError().hidden).toBe(false);
+
+    loadData.mockClear();
+    typeRegion("2:1000-2000");
+    await flush();
+    expect(regionError().hidden).toBe(true);
+    expect(loadData).toHaveBeenCalledWith(
+      samples[0],
+      { chrom: "2", start: 1000, end: 2000 },
+      expect.anything(),
+    );
+  });
+
+  test("hides the region box unless it is being used", async () => {
+    await flush();
+    const field = panel.shadowRoot.querySelector("#custom-field") as HTMLElement;
+    expect(field.hidden).toBe(true);
+    select("#interval", "custom");
+    await flush();
+    expect(field.hidden).toBe(false);
+    select("#interval", "view");
+    await flush();
+    expect(field.hidden).toBe(true);
+  });
+
   test("exports the displayed bins and interval metadata", async () => {
     await flush();
     const originalCreate = URL.createObjectURL;

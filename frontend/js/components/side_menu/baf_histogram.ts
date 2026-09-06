@@ -1,6 +1,8 @@
 import { COLORS, ICONS } from "../../constants";
 import { BafHistogram, buildBafHistogram } from "../../util/baf_histogram";
 import { getSampleKey } from "../../util/utils";
+import { formatRegion, parseRegionText } from "../../util/region_text";
+import { CHROMOSOMES } from "../../constants";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
 
 interface HistogramSources {
@@ -40,11 +42,14 @@ template.innerHTML = String.raw`
     #chart text { font: 12px sans-serif; fill: ${COLORS.darkGray}; }
     #chart rect:hover { fill: ${COLORS.blue}; }
     #validation { color: #a12622; margin: 0; }
+    #region-validation { color: #a12622; margin: 0; }
     [hidden] { display: none !important; }
   </style>
   <div class="fields">
     <label>Sample<select id="sample" aria-label="Histogram sample"></select></label>
     <label>Interval<select id="interval" aria-label="Histogram interval"></select></label>
+    <label id="custom-field" hidden>Region to measure<input id="custom-region" type="text" inputmode="text" placeholder="1:100000-200000" aria-label="Region to measure"></label>
+    <p id="region-validation" role="alert" hidden></p>
     <div class="limits">
       <label>BAF min<input id="minimum" type="number" min="0" max="1" step="0.01" value="0" required></label>
       <label>BAF max<input id="maximum" type="number" min="0" max="1" step="0.01" value="1" required></label>
@@ -74,6 +79,9 @@ export class BafHistogramPanel extends ShadowBaseElement {
   private validation: HTMLParagraphElement;
   private chart: SVGSVGElement;
   private exportButton: HTMLButtonElement;
+  private customField: HTMLLabelElement;
+  private customInput: HTMLInputElement;
+  private regionValidation: HTMLParagraphElement;
   private request: AbortController | null = null;
   private timer: number | undefined;
   private requestKey = "";
@@ -93,6 +101,9 @@ export class BafHistogramPanel extends ShadowBaseElement {
     this.validation = this.root.querySelector("#validation");
     this.chart = this.root.querySelector("#chart");
     this.exportButton = this.root.querySelector("#export");
+    this.customField = this.root.querySelector("#custom-field");
+    this.customInput = this.root.querySelector("#custom-region");
+    this.regionValidation = this.root.querySelector("#region-validation");
   }
 
   setSources(sources: HistogramSources) {
@@ -116,6 +127,13 @@ export class BafHistogramPanel extends ShadowBaseElement {
       },
     );
     this.addElementListener(this.exportButton, "click", () => this.exportCsv());
+    this.addElementListener(this.customInput, "change", () => this.render());
+    this.addElementListener(this.customInput, "keydown", (event) => {
+      if ((event as KeyboardEvent).key === "Enter") {
+        event.preventDefault();
+        this.render();
+      }
+    });
     this.render();
   }
 
@@ -154,6 +172,9 @@ export class BafHistogramPanel extends ShadowBaseElement {
     const highlights = this.sources.getHighlights();
     this.intervalSelect.replaceChildren(
       new Option("Visible interval", "view"),
+      // Measuring somewhere other than the visible view used to mean leaving
+      // the panel, entering marker mode and dragging out a highlight first.
+      new Option("Region I type", "custom"),
       ...highlights.map(
         (highlight) =>
           new Option(
@@ -162,21 +183,54 @@ export class BafHistogramPanel extends ShadowBaseElement {
           ),
       ),
     );
-    this.intervalSelect.value = highlights.some(
-      (highlight) => highlight.id === selectedInterval,
-    )
-      ? selectedInterval
-      : "view";
-    const highlight = highlights.find(
-      (entry) => entry.id === this.intervalSelect.value,
-    );
-    const rawRegion = highlight
-      ? {
-          chrom: highlight.chromosome,
-          start: highlight.range[0],
-          end: highlight.range[1],
-        }
-      : this.sources.getRegion();
+    this.intervalSelect.value =
+      selectedInterval === "custom" ||
+      highlights.some((highlight) => highlight.id === selectedInterval)
+        ? selectedInterval
+        : "view";
+
+    const isCustom = this.intervalSelect.value === "custom";
+    this.customField.hidden = !isCustom;
+    if (isCustom && this.customInput.value.trim() === "") {
+      // Start from where the reader is looking, so the format is shown by
+      // example and a small edit is enough.
+      this.customInput.value = formatRegion(this.sources.getRegion());
+    }
+
+    let rawRegion: Region;
+    if (isCustom) {
+      const parsed = parseRegionText(this.customInput.value, CHROMOSOMES);
+      this.regionValidation.hidden = parsed.error === null;
+      this.regionValidation.textContent = parsed.error ?? "";
+      if (parsed.region === null) {
+        // Nothing is measured until the region is usable. Drawing the previous
+        // region under a new label would be a wrong answer, not a stale one.
+        this.request?.abort();
+        window.clearTimeout(this.timer);
+        this.requestKey = "";
+        this.data = null;
+        this.histogram = null;
+        this.chart.replaceChildren();
+        this.status.textContent = "";
+        this.exportButton.disabled = true;
+        this.root.querySelector("#region").textContent = "";
+        return;
+      }
+      rawRegion = parsed.region;
+    } else {
+      this.regionValidation.hidden = true;
+      this.regionValidation.textContent = "";
+      const highlight = highlights.find(
+        (entry) => entry.id === this.intervalSelect.value,
+      );
+      rawRegion = highlight
+        ? {
+            chrom: highlight.chromosome,
+            start: highlight.range[0],
+            end: highlight.range[1],
+          }
+        : this.sources.getRegion();
+    }
     this.region = {
       ...rawRegion,
       start: Math.max(1, Math.ceil(rawRegion.start)),
