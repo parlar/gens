@@ -16,6 +16,9 @@ interface HistogramSources {
     region: Region,
     signal: AbortSignal,
   ) => Promise<ApiCoverageDot[]>;
+  /** Arm a one-shot pick: the reader's next drag on the tracks lands here. */
+  pickRegion: (onPicked: (region: Region) => void) => void;
+  isPickingRegion: () => boolean;
 }
 
 const template = document.createElement("template");
@@ -43,12 +46,20 @@ template.innerHTML = String.raw`
     #chart rect:hover { fill: ${COLORS.blue}; }
     #validation { color: #a12622; margin: 0; }
     #region-validation { color: #a12622; margin: 0; }
+    #pick-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    #pick { width: auto; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; }
+    #pick[aria-pressed="true"] { background: ${COLORS.lightGray}; }
+    #pick-hint { font-size: 0.85em; color: ${COLORS.darkGray}; }
     [hidden] { display: none !important; }
   </style>
   <div class="fields">
     <label>Sample<select id="sample" aria-label="Histogram sample"></select></label>
     <label>Interval<select id="interval" aria-label="Histogram interval"></select></label>
     <label id="custom-field" hidden>Region to measure<input id="custom-region" type="text" inputmode="text" placeholder="1:100000-200000" aria-label="Region to measure"></label>
+    <div id="pick-row">
+      <button id="pick" type="button"><span class="fas ${ICONS.marker}" aria-hidden="true"></span> Select on tracks</button>
+      <span id="pick-hint" hidden>Drag across the tracks. Escape cancels.</span>
+    </div>
     <p id="region-validation" role="alert" hidden></p>
     <div class="limits">
       <label>BAF min<input id="minimum" type="number" min="0" max="1" step="0.01" value="0" required></label>
@@ -82,6 +93,8 @@ export class BafHistogramPanel extends ShadowBaseElement {
   private customField: HTMLLabelElement;
   private customInput: HTMLInputElement;
   private regionValidation: HTMLParagraphElement;
+  private pickButton: HTMLButtonElement;
+  private pickHint: HTMLSpanElement;
   private request: AbortController | null = null;
   private timer: number | undefined;
   private requestKey = "";
@@ -104,6 +117,8 @@ export class BafHistogramPanel extends ShadowBaseElement {
     this.customField = this.root.querySelector("#custom-field");
     this.customInput = this.root.querySelector("#custom-region");
     this.regionValidation = this.root.querySelector("#region-validation");
+    this.pickButton = this.root.querySelector("#pick");
+    this.pickHint = this.root.querySelector("#pick-hint");
   }
 
   setSources(sources: HistogramSources) {
@@ -127,6 +142,7 @@ export class BafHistogramPanel extends ShadowBaseElement {
       },
     );
     this.addElementListener(this.exportButton, "click", () => this.exportCsv());
+    this.addElementListener(this.pickButton, "click", () => this.startPick());
     this.addElementListener(this.customInput, "change", () => this.render());
     this.addElementListener(this.customInput, "keydown", (event) => {
       if ((event as KeyboardEvent).key === "Enter") {
@@ -188,6 +204,10 @@ export class BafHistogramPanel extends ShadowBaseElement {
       highlights.some((highlight) => highlight.id === selectedInterval)
         ? selectedInterval
         : "view";
+
+    const picking = this.sources.isPickingRegion();
+    this.pickButton.setAttribute("aria-pressed", picking ? "true" : "false");
+    this.pickHint.hidden = !picking;
 
     const isCustom = this.intervalSelect.value === "custom";
     this.customField.hidden = !isCustom;
@@ -284,6 +304,16 @@ export class BafHistogramPanel extends ShadowBaseElement {
         console.error("BAF histogram request failed", error);
       }
     }, 150);
+  }
+
+  /** Let the reader drag the region out on the tracks instead of typing it. */
+  private startPick() {
+    this.sources.pickRegion((region) => {
+      this.intervalSelect.value = "custom";
+      this.customInput.value = formatRegion(region);
+      this.render();
+    });
+    this.render();
   }
 
   private draw() {

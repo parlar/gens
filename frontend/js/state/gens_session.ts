@@ -28,6 +28,7 @@ export class GensSession {
   private render: (settings: RenderSettings) => void;
   private sideMenu: SideMenu;
   private markerModeOn: boolean = false;
+  private regionPicker: ((range: Rng) => void) | null = null;
   private highlights: Record<string, RangeHighlight>;
   private mainSample: Sample;
   private samples: Sample[];
@@ -378,7 +379,41 @@ export class GensSession {
 
   public toggleMarkerMode() {
     this.markerModeOn = !this.markerModeOn;
+    if (!this.markerModeOn) {
+      // Switching the mode off by hand, or with Escape, abandons a pick.
+      this.regionPicker = null;
+    }
     this.render({});
+  }
+
+  /**
+   * Arm a one-shot region pick.
+   *
+   * The next drag on the tracks reports its range here instead of leaving a
+   * highlight behind. Marker mode is switched on so the reader gets the same
+   * rubber band and cursor they already know, and switched off again as soon
+   * as the range is taken, so picking a region does not leave the viewer in a
+   * mode the reader did not ask for.
+   */
+  public pickRegion(onPicked: (range: Rng) => void): void {
+    this.regionPicker = onPicked;
+    this.markerModeOn = true;
+    this.render({});
+  }
+
+  public isPickingRegion(): boolean {
+    return this.regionPicker !== null;
+  }
+
+  /** Hand over the armed pick, if there is one, and disarm. */
+  public takeRegionPicker(): ((range: Rng) => void) | null {
+    const picker = this.regionPicker;
+    if (picker === null) {
+      return null;
+    }
+    this.regionPicker = null;
+    this.markerModeOn = false;
+    return picker;
   }
 
   // FIXME: It is convenient for the session to know about the side menu

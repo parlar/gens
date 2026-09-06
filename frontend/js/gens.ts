@@ -248,6 +248,15 @@ export async function initCanvases({
     getSampleLabel: (sample) => session.getDisplaySampleLabel(sample),
     loadData: (sample, region, signal) =>
       api.getBafHistogramData(sample, region, signal),
+    pickRegion: (onPicked) =>
+      session.pickRegion((range) =>
+        onPicked({
+          chrom: session.pos.getChromosome(),
+          start: Math.round(range[0]),
+          end: Math.round(range[1]),
+        }),
+      ),
+    isPickingRegion: () => session.isPickingRegion(),
   });
 
   connectionsPage.setSources({

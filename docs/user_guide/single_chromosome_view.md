@@ -88,6 +88,12 @@ elsewhere. The visible-interval histogram follows navigation; a highlight or a
 typed region stays put. Nothing is measured while a typed region is unusable,
 and the panel says what is wrong with it.
 
+**Select on tracks** picks the region with the mouse instead: press it, then
+drag across the tracks and the dragged interval becomes the measured region.
+This is a single pick rather than a mode, so the viewer returns to normal
+afterwards and no highlight is left behind. Press Escape to cancel. The picked
+coordinates appear in the region box and can then be adjusted by hand.
+
 The vertical axis is BAF and the horizontal axis is the number of retained sites
 in each bin. Hover over a bar for its BAF limits and site count. Adjust **Bins**
 or **BAF min/max** to inspect the distribution; these controls reuse the loaded

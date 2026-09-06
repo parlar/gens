@@ -269,7 +269,16 @@ export class TrackView extends ShadowBaseElement {
         sessionPos.setViewRange(range);
         render({ reloadData: true, positionOnly: true });
       },
-      (range: Rng) => session.addHighlight(range),
+      (range: Rng) => {
+        const picker = session.takeRegionPicker();
+        if (picker !== null) {
+          // Answering a pick, not leaving a mark behind.
+          picker(range);
+          render({});
+          return;
+        }
+        session.addHighlight(range);
+      },
       (id: string) => session.removeHighlight(id),
       (pixelDeltaX: number, isDone: boolean) => {
         if (isDone) {

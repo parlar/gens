@@ -4,10 +4,14 @@ describe("BAF histogram panel", () => {
   let panel: BafHistogramPanel;
   let region: Region;
   let loadData: jest.Mock;
+  let pickRegion: jest.Mock;
+  let picking: boolean;
   const samples: Sample[] = [
     { sampleId: "proband", caseId: "case", genomeBuild: 38 },
     { sampleId: "parent", caseId: "case", genomeBuild: 38 },
   ];
+
+  let lastPick: ((region: Region) => void) | null = null;
 
   const flush = async () => {
     jest.advanceTimersByTime(150);
@@ -24,6 +28,11 @@ describe("BAF histogram panel", () => {
     jest.useFakeTimers();
     region = { chrom: "1", start: 100, end: 200 };
     loadData = jest.fn().mockResolvedValue([{ pos: 150, value: 0.5 }]);
+    picking = false;
+    pickRegion = jest.fn((onPicked: (region: Region) => void) => {
+      picking = true;
+      lastPick = onPicked;
+    });
     panel = new BafHistogramPanel();
     panel.setSources({
       getSamples: () => samples,
@@ -34,6 +43,8 @@ describe("BAF histogram panel", () => {
       ],
       getSampleLabel: (sample) => sample.sampleId,
       loadData,
+      pickRegion,
+      isPickingRegion: () => picking,
     });
     document.body.appendChild(panel);
   });
@@ -214,6 +225,58 @@ describe("BAF histogram panel", () => {
     select("#interval", "view");
     await flush();
     expect(field.hidden).toBe(true);
+  });
+
+  test("hands the region pick to the tracks and uses what comes back", async () => {
+    await flush();
+    loadData.mockClear();
+    (panel.shadowRoot.querySelector("#pick") as HTMLButtonElement).click();
+    await flush();
+
+    expect(pickRegion).toHaveBeenCalledTimes(1);
+    expect(
+      (panel.shadowRoot.querySelector("#pick") as HTMLElement).getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("true");
+    expect((panel.shadowRoot.querySelector("#pick-hint") as HTMLElement).hidden)
+      .toBe(false);
+
+    // The reader drags on the tracks; the range arrives here.
+    picking = false;
+    lastPick({ chrom: "2", start: 5000, end: 6000 } as Region);
+    await flush();
+
+    const interval = panel.shadowRoot.querySelector(
+      "#interval",
+    ) as HTMLSelectElement;
+    expect(interval.value).toBe("custom");
+    expect(
+      (panel.shadowRoot.querySelector("#custom-region") as HTMLInputElement)
+        .value,
+    ).toBe("2:5,000-6,000");
+    expect(loadData).toHaveBeenCalledWith(
+      samples[0],
+      { chrom: "2", start: 5000, end: 6000 },
+      expect.anything(),
+    );
+  });
+
+  test("a picked region can then be edited by hand", async () => {
+    await flush();
+    (panel.shadowRoot.querySelector("#pick") as HTMLButtonElement).click();
+    picking = false;
+    lastPick({ chrom: "2", start: 5000, end: 6000 } as Region);
+    await flush();
+
+    loadData.mockClear();
+    typeRegion("2:5,000-5,500");
+    await flush();
+    expect(loadData).toHaveBeenCalledWith(
+      samples[0],
+      { chrom: "2", start: 5000, end: 5500 },
+      expect.anything(),
+    );
   });
 
   test("exports the displayed bins and interval metadata", async () => {
