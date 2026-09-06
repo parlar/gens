@@ -125,6 +125,8 @@ export function getTrack(
       setIsExpanded,
       getColorBands,
       getXRange,
+      // Depleted bins are coloured by the data source and must not be repainted.
+      true,
     );
   } else if (setting.trackType == "gene") {
     const getGeneBands = () => dataSource.getTranscriptBands(getChromosome());
@@ -154,6 +156,7 @@ export function getDotTrack(
   setIsExpanded: (trackId: string, isExpanded: boolean) => void,
   getColorBands: () => RenderBand[],
   getXRange: () => Rng,
+  keepDotColors: boolean = false,
 ): DotTrack {
   const settings = getSettings();
 
@@ -178,6 +181,7 @@ export function getDotTrack(
     },
     () => session.getMarkerModeOn(),
     () => getColorBands(),
+    keepDotColors,
   );
   return dotTrack;
 }

@@ -4,6 +4,15 @@ import { DataTrack } from "./base_tracks/data_track";
 
 export class DotTrack extends DataTrack {
   startExpanded: boolean;
+  /**
+   * Keep the colour each dot carries instead of forcing black.
+   *
+   * Coverage and BAF dots are uniform, so this track normally paints them all
+   * black and reserves red for values clamped outside the y range. A track
+   * whose dots differ in meaning, such as heterozygote density marking
+   * depleted bins, sets this so its own colours survive.
+   */
+  private keepDotColors: boolean;
 
   constructor(
     id: string,
@@ -16,6 +25,7 @@ export class DotTrack extends DataTrack {
     openTrackContextMenu: (track: DataTrack) => void,
     getMarkerModeOn: () => boolean,
     getAnnotColorBands: () => RenderBand[],
+    keepDotColors: boolean = false,
   ) {
     super(
       id,
@@ -42,6 +52,7 @@ export class DotTrack extends DataTrack {
       getAnnotColorBands,
     );
     this.getRenderData = getRenderData;
+    this.keepDotColors = keepDotColors;
   }
 
   connectedCallback(): void {
@@ -67,7 +78,10 @@ export class DotTrack extends DataTrack {
 
     const dotsTruncatedY = dotsInRange.map((dot) => {
       const yRange = this.getYRange();
-      const copy = { ...dot, color: STYLE.colors.black };
+      const copy = {
+        ...dot,
+        color: this.keepDotColors ? dot.color : STYLE.colors.black,
+      };
       if (dot.y < yRange[0]) {
         copy.y = yRange[0];
         copy.color = STYLE.colors.red;
