@@ -266,8 +266,8 @@ async function getSampleTracks(
 
   // Heterozygote density: a count, not a fitted model. It is the only one of
   // these tracks that can show a deletion or copy-neutral LOH, which remove
-  // heterozygosity instead of shifting the BAF band. Hidden by default so that
-  // existing layouts are unchanged until a user turns it on.
+  // heterozygosity instead of shifting the BAF band, so it is shown alongside
+  // coverage and BAF rather than left for the user to discover.
   const hetDensity: DataTrackSettings = {
     trackId: `${sampleKey}_${TRACK_IDS.het_density}`,
     trackLabel: `${sampleDisplayLabel} het density`,
@@ -285,7 +285,7 @@ async function getSampleTracks(
       highlightedYs: [1],
     },
     isExpanded: true,
-    isHidden: true,
+    isHidden: false,
   };
 
   const variants: DataTrackSettings = {
