@@ -27,7 +27,7 @@ router = APIRouter(prefix="/samples")
 
 
 @router.get("/", tags=[ApiTags.SAMPLE])
-async def get_multiple_samples(
+def get_multiple_samples(
     db: GensDb, skip: int = 0, limit: int | None = None
 ) -> MultipleSamples:
     """Query the database for multiple samples.
@@ -39,7 +39,7 @@ async def get_multiple_samples(
 
 
 @router.get("/sample", tags=[ApiTags.SAMPLE])
-async def get_sample_route(
+def get_sample_route(
     sample_id: str, case_id: str, genome_build: GenomeBuild, db: GensDb
 ) -> SampleInfo:
     sample_info: SampleInfo = samples.get_sample(
@@ -147,7 +147,7 @@ def get_sample_het_density(
     "/sample/{data_type}",
     tags=[ApiTags.SAMPLE],
 )
-async def get_genome_coverage(
+def get_genome_coverage(
     sample_id: str,
     case_id: str,
     data_type: ScatterDataType,
@@ -174,7 +174,7 @@ async def get_genome_coverage(
 
 
 @router.get("/sample/{data_type}/overview", tags=[ApiTags.SAMPLE])
-async def get_cov_overview(
+def get_cov_overview(
     sample_id: str,
     case_id: str,
     data_type: ScatterDataType,

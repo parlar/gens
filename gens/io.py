@@ -86,27 +86,32 @@ def get_scatter_data(
     """Development entrypoint for getting the coverage of a region."""
     sample_obj = get_sample(collection, sample_id, case_id, genome_build)
 
-    if data_type == ScatterDataType.COV:
-        tabix_file = TabixFile(str(sample_obj.coverage_file))
-    else:
-        tabix_file = TabixFile(str(sample_obj.baf_file))
-
     valid_zoom_levels = {"o", "a", "b", "c", "d"}
     if zoom_level not in valid_zoom_levels:
         raise ValueError(
             f"Unexpected zoom level: {zoom_level}, valid are: {valid_zoom_levels}"
         )
 
+    path = (
+        sample_obj.coverage_file
+        if data_type == ScatterDataType.COV
+        else sample_obj.baf_file
+    )
+
     # Tabix
     record_name = f"{zoom_level}_{region.chromosome}"
 
-    try:
-        records = tabix_file.fetch(record_name, region.start, region.end)
-    except ValueError as err:
-        LOG.error(err)
-        records = iter([])
+    # The handle is closed here rather than left to the garbage collector: this
+    # runs once per request in a process that stays up for weeks, and an
+    # unclosed index holds an open file descriptor until it is collected.
+    with TabixFile(str(path)) as tabix_file:
+        try:
+            records = tabix_file.fetch(record_name, region.start, region.end)
+        except ValueError as err:
+            LOG.error(err)
+            records = iter([])
 
-    return parse_raw_tabix([r.split("\t") for r in records])
+        return parse_raw_tabix([r.split("\t") for r in records])
 
 
 def get_overview_data(file: Path, data_type: ScatterDataType) -> list[GenomeCoverage]:
@@ -139,20 +144,18 @@ def get_overview_from_tabix(
 ) -> list[GenomeCoverage]:
     """Generate overview data using the "o" resolution from bed files."""
 
-    if data_type == ScatterDataType.COV:
-        tabix_file = TabixFile(str(sample.coverage_file))
-    else:
-        tabix_file = TabixFile(str(sample.baf_file))
+    path = sample.coverage_file if data_type == ScatterDataType.COV else sample.baf_file
 
     results: list[GenomeCoverage] = []
-    for chrom in Chromosome:
-        record_name = f"o_{chrom.value}"
-        try:
-            records = tabix_file.fetch(record_name)
-        except ValueError as err:
-            LOG.error(err)
-            continue
+    with TabixFile(str(path)) as tabix_file:
+        for chrom in Chromosome:
+            record_name = f"o_{chrom.value}"
+            try:
+                records = tabix_file.fetch(record_name)
+            except ValueError as err:
+                LOG.error(err)
+                continue
 
-        results.append(parse_raw_tabix([r.split("\t") for r in records]))
+            results.append(parse_raw_tabix([r.split("\t") for r in records]))
 
     return results

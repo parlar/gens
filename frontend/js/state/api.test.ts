@@ -69,13 +69,24 @@ describe("BAF histogram requests", () => {
   test("requests compact evidence with inclusive coordinates and no file path", async () => {
     mockGet.mockResolvedValue(null);
     const signal = new AbortController().signal;
-    const filters = { kind: "pair" as const, minimum_mapq: 20, minimum_fragments: 3 };
-    await expect(api.getReadEvidence(sample, region, filters, signal)).resolves.toBeNull();
+    const filters = {
+      kind: "pair" as const,
+      minimum_mapq: 20,
+      minimum_fragments: 3,
+    };
+    await expect(
+      api.getReadEvidence(sample, region, filters, signal),
+    ).resolves.toBeNull();
     expect(mockGet).toHaveBeenCalledWith(
       "https://example.org/gens/api/samples/sample/read-evidence",
       {
-        sample_id: "sample&A", case_id: "case", genome_build: 38,
-        chromosome: "1", start: 100, end: 200, ...filters,
+        sample_id: "sample&A",
+        case_id: "case",
+        genome_build: 38,
+        chromosome: "1",
+        start: 100,
+        end: 200,
+        ...filters,
       },
       signal,
     );
@@ -109,5 +120,25 @@ describe("gene panel requests", () => {
       { genome_build: 38, version: "2.0" },
       signal,
     );
+  });
+});
+
+describe("startup", () => {
+  it("fetches every chromosome at once, not one after another", async () => {
+    // Sequentially this blocked the first paint for the sum of 24 round trips.
+    let inFlight = 0;
+    let peak = 0;
+    const api = new API(38, "http://example.test/api/");
+    jest.spyOn(api, "getChromData").mockImplementation(async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return { chrom: "1", size: 1000, centromere: null } as never;
+    });
+
+    await api.initialize();
+
+    expect(peak).toBeGreaterThan(1);
   });
 });

@@ -59,17 +59,20 @@ export class API {
   }
 
   async initialize() {
-    for (const chrom of CHROMOSOMES) {
-      const chromInfo = await this.getChromData(chrom);
-      this.allChromData[chrom] = chromInfo;
-    }
+    // All 24 at once. Fetched one after another this blocked the first paint
+    // for the sum of 24 round trips, and none of them depends on another.
+    const chromInfos = await Promise.all(
+      CHROMOSOMES.map((chrom) => this.getChromData(chrom)),
+    );
+    CHROMOSOMES.forEach((chrom, index) => {
+      this.allChromData[chrom] = chromInfos[index];
+    });
   }
 
   getSearchResult(
     query: string,
     annotationTrackIds: string[],
   ): Promise<ApiSearchResult | null> {
-    console.log(this.apiURI);
     const params = {
       q: query,
       genome_build: this.genomeBuild,

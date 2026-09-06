@@ -78,7 +78,7 @@ def create_app() -> FastAPI:
     with flask_app.app_context():
         init_database_connection(flask_app)
     # connect to mongo client
-    flask_app.config["DEBUG"] = True
+    flask_app.config["DEBUG"] = settings.debug
     flask_app.config["SECRET_KEY"] = settings.secret_key
     flask_app.config["SESSION_COOKIE_NAME"] = settings.session_cookie_name
     flask_app.config["REMEMBER_COOKIE_NAME"] = settings.remember_cookie_name
@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
 
     # register bluprints and errors
     register_blueprints(flask_app)
+    register_errors(flask_app)
 
     async def require_api_auth(request: Request) -> None:
         """Require a valid logged-in session for API routes"""

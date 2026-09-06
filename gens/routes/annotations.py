@@ -49,7 +49,7 @@ router = APIRouter(prefix="/tracks")
 
 
 @router.get("/annotations", tags=[ApiTags.ANNOT], response_model_by_alias=False)
-async def get_annotations_tracks(
+def get_annotations_tracks(
     genome_build: GenomeBuild | None, db: GensDb
 ) -> list[AnnotationTrackInDb]:
     """Get all avaliable annotation tracks."""
@@ -58,7 +58,7 @@ async def get_annotations_tracks(
 
 
 @router.get("/annotations/track/{track_id}", tags=[ApiTags.ANNOT])
-async def get_annotation_track(
+def get_annotation_track(
     track_id: PydanticObjectId,
     db: GensDb,
     chromosome: str | None = None,
@@ -77,9 +77,7 @@ async def get_annotation_track(
 
 
 @router.get("/annotations/record/{record_id}", tags=[ApiTags.ANNOT])
-async def get_annotation_with_id(
-    record_id: PydanticObjectId, db: GensDb
-) -> AnnotationRecord:
+def get_annotation_with_id(record_id: PydanticObjectId, db: GensDb) -> AnnotationRecord:
     """Get annotations for a region."""
     result = get_annotation(record_id, db)
     if result is None:
@@ -88,7 +86,7 @@ async def get_annotation_with_id(
 
 
 @router.get("/transcripts", tags=[ApiTags.TRANSC])
-async def get_transcripts(
+def get_transcripts(
     chromosome: Chromosome,
     genome_build: GenomeBuild,
     db: GensDb,
@@ -128,7 +126,7 @@ async def get_transcripts(
 
 
 @router.get("/transcripts/{transcript_id}", tags=[ApiTags.TRANSC])
-async def get_transcript_with_id(
+def get_transcript_with_id(
     transcript_id: PydanticObjectId, db: GensDb
 ) -> TranscriptRecord:
     """Get a single transcript by its unique ID.
@@ -142,7 +140,7 @@ async def get_transcript_with_id(
 
 
 @router.get("/updates")
-async def get_track_latest_update_time(
+def get_track_latest_update_time(
     track: str,
     db: GensDb,
 ):
@@ -158,7 +156,7 @@ async def get_track_latest_update_time(
 
 
 @router.get("/chromosomes/", tags=[ApiTags.CHROM])
-async def get_chromosomes_with_build(
+def get_chromosomes_with_build(
     genome_build: GenomeBuild, db: GensDb
 ) -> list[ReducedChromInfo]:
     """Query the database for all chromosomes with a given genome build."""
@@ -167,7 +165,7 @@ async def get_chromosomes_with_build(
 
 
 @router.get("/chromosomes/{chromosome}", tags=[ApiTags.CHROM])
-async def get_chromosome_with_build(
+def get_chromosome_with_build(
     chromosome: Chromosome, genome_build: GenomeBuild, db: GensDb
 ) -> ChromInfo:
     """Query the database for a chromosome."""
@@ -178,7 +176,7 @@ async def get_chromosome_with_build(
 
 
 @router.get("/variants", tags=[ApiTags.VAR])
-async def get_variants(
+def get_variants(
     sample_id: str,
     case_id: str,
     chromosome: Chromosome,
@@ -229,7 +227,7 @@ async def get_variants(
 
 
 @router.get("/variants/{document_id}", tags=[ApiTags.VAR])
-async def get_variant_with_id(
+def get_variant_with_id(
     document_id: str,
     adapter: AdapterDep,
 ) -> VariantRecord:

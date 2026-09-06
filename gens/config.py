@@ -124,6 +124,14 @@ class Settings(BaseSettings):
         default_factory=lambda: ["proband", "tumor"],
         description="Sample types treated as main samples",
     )
+    debug: bool = Field(
+        default=False,
+        description=(
+            "Flask debug mode. Off unless asked for: it puts an interactive "
+            "traceback on the error page, which shows source and local "
+            "variables to whoever triggered the error."
+        ),
+    )
     secret_key: str = Field(
         default=DEFAULT_SECRET_KEY,
         description="Flask secret key used for sessions.",

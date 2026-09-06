@@ -20,7 +20,7 @@ router = APIRouter(prefix="/sample-tracks")
 
 
 @router.get("/annotations", tags=[ApiTags.SAMPLE_ANNOT])
-async def get_sample_annotation_tracks_route(
+def get_sample_annotation_tracks_route(
     sample_id: str,
     case_id: str,
     genome_build: GenomeBuild,
@@ -33,7 +33,7 @@ async def get_sample_annotation_tracks_route(
 
 
 @router.get("/annotations/track/{track_id}", tags=[ApiTags.SAMPLE_ANNOT])
-async def get_sample_annotations_route(
+def get_sample_annotations_route(
     track_id: PydanticObjectId, chromosome: Chromosome, db: GensDb
 ) -> list[SimplifiedTrackInfo]:
     return get_sample_annotations_for_track(
@@ -42,7 +42,7 @@ async def get_sample_annotations_route(
 
 
 @router.get("/annotations/record/{record_id}", tags=[ApiTags.SAMPLE_ANNOT])
-async def get_sample_annotation_record_route(
+def get_sample_annotation_record_route(
     record_id: PydanticObjectId,
     db: GensDb,
 ) -> SampleAnnotationRecord:

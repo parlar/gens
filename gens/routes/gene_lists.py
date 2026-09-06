@@ -13,14 +13,14 @@ LOG = logging.getLogger(__name__)
 
 
 @router.get("/", tags=[ApiTags.GENE_LIST])
-async def get_gene_lists(variant_adapter: AdapterDep) -> list[GeneListRecord]:
+def get_gene_lists(variant_adapter: AdapterDep) -> list[GeneListRecord]:
     """Get ID and name of all available gene lists"""
 
     return variant_adapter.get_gene_lists()
 
 
 @router.get("/track/{panel_id}", tags=[ApiTags.GENE_LIST])
-async def get_gene_list_symbols(
+def get_gene_list_symbols(
     panel_id: str,
     variant_adapter: AdapterDep,
     version: str | None = Query(default=None),
@@ -32,7 +32,7 @@ async def get_gene_list_symbols(
 
 
 @router.get("/{panel_id}/genes", tags=[ApiTags.GENE_LIST])
-async def get_gene_list_positions(
+def get_gene_list_positions(
     panel_id: str,
     genome_build: GenomeBuild,
     variant_adapter: AdapterDep,
