@@ -14,9 +14,12 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 
 - Let the CI typecheck and ESLint jobs fail a pull request instead of only reporting; both already pass on `dev`
+- Remove `MANIFEST.in`, which described packaging for setuptools while the build backend is hatchling, so it had no effect on what was distributed
 
 ### Fixed
 
+- Put the Python package into the source distribution, which held only assets, so a wheel built from the published archive contained no importable modules
+- Include the compiled CSS and JavaScript in built distributions by declaring them as build artifacts; `.gitignore` had been hiding them from the build backend, and only the Docker build escaped it because its context has no ignore file
 - Show imported annotation comments and track names as text rather than markup, so a URL-shaped string containing a tag can no longer introduce an element or an event handler, and only `http` and `https` links are made clickable
 - Coalesce repeated track renders again: the debounced fetch was rebuilt on every call, so each got its own timer and rapid panning made one request per frame
 - Discard a data track response as soon as the reader moves on, rather than only once the next fetch has started, so a response for the previous view can no longer be drawn against the new view's scale

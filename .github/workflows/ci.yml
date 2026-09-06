@@ -53,6 +53,28 @@ jobs:
     # for a response shape the server no longer sends.
     - run: npm run types:api:check
 
+  distribution:
+    name: The built distribution installs and imports
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 20.x
+    # The compiled assets are gitignored, so a fresh checkout has none. They
+    # have to exist before the build for the check to mean anything.
+    - name: Build the frontend
+      run: |
+        npm ci
+        npm run buildcp
+    # Builds an sdist, builds a wheel from that sdist, installs it outside the
+    # checkout and imports the application. The wheel built directly from a
+    # checkout was fine while the source archive contained no Python at all.
+    - run: ./utils/check_distribution.sh
+
   js-unit-tests:
     runs-on: ubuntu-latest
     strategy:

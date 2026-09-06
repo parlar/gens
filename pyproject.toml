@@ -63,17 +63,36 @@ testpaths = ["tests"]
 [tool.hatch.version]
 path = "gens/__version__.py"
 
+# The compiled CSS and JavaScript are build output and so are gitignored, and
+# hatchling honours the ignore file. They have to be declared as artifacts to
+# reach a distribution at all: `include` does not override a VCS ignore, which
+# is why a locally built wheel used to contain no frontend assets. The Docker
+# build never showed it, because its context has no .gitignore in it.
 [tool.hatch.build]
-include = [
-  "gens/templates/*.html",
-  "gens/static/**/*",
+artifacts = [
   "gens/static/**/*",
   "gens/blueprints/**/static/*",
-  "gens/openapi/openapi.yaml",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["gens"]
+
+# The sdist needs saying separately. Without this it inherited only the asset
+# list above, which names no Python at all, so `pip install` of the source
+# archive produced an importable-looking package with no modules in it; the
+# wheel built directly never had the problem, which is why it went unnoticed.
+[tool.hatch.build.targets.sdist]
+include = [
+  "gens/",
+  "tests/",
+  "utils/",
+  "docs/",
+  "pyproject.toml",
+  "README.md",
+  "LICENSE",
+  "CHANGELOG.md",
+  "requirements-dev.txt",
+]
 
 [tool.hatch.envs.types]
 extra-dependencies = [
