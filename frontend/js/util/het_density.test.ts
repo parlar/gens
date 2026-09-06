@@ -1,15 +1,15 @@
 import { buildHetDensity, poissonAtMost } from "./het_density";
 
-/** Evenly spaced sites, `perBin` in each of `binCount` bins over [1, span]. */
-function evenSites(span: number, binCount: number, perBin: number) {
-  const width = span / binCount;
+const BIN = 1000;
+// Ten whole bins on the absolute grid: [0,1000) ... [9000,10000).
+const REGION: Rng = [0, 9999];
+
+/** `perBin` sites inside each of the ten bins covering REGION. */
+function evenSites(perBin: number) {
   const sites: ApiCoverageDot[] = [];
-  for (let bin = 0; bin < binCount; bin += 1) {
+  for (let bin = 0; bin < 10; bin += 1) {
     for (let i = 0; i < perBin; i += 1) {
-      sites.push({
-        pos: 1 + bin * width + ((i + 0.5) * width) / perBin,
-        value: 0.5,
-      });
+      sites.push({ pos: bin * BIN + ((i + 0.5) * BIN) / perBin, value: 0.5 });
     }
   }
   return sites;
@@ -46,9 +46,8 @@ describe("poissonAtMost", () => {
 
 describe("buildHetDensity", () => {
   it("reports a flat region as at baseline with ratio near 1", () => {
-    const result = buildHetDensity(evenSites(10000, 10, 10), [1, 10001], {
-      binCount: 10,
-    });
+    const result = buildHetDensity(evenSites(10), REGION, { binSize: BIN });
+    expect(result.bins).toHaveLength(10);
     expect(result.baseline).toBe(10);
     expect(result.noBaseline).toBe(false);
     expect(result.siteCount).toBe(100);
@@ -58,23 +57,35 @@ describe("buildHetDensity", () => {
     }
   });
 
+  it("puts bins on the absolute grid so panning does not move them", () => {
+    // Two overlapping views must agree on the bin covering 4000-5000.
+    const sites = evenSites(20);
+    const wide = buildHetDensity(sites, [0, 9999], { binSize: BIN });
+    const narrow = buildHetDensity(sites, [3500, 6500], { binSize: BIN });
+
+    const from = (r: typeof wide) => r.bins.find((b) => b.start === 4000);
+    expect(from(narrow)).toBeDefined();
+    expect(from(narrow)!.end).toBe(5000);
+    expect(from(narrow)!.observed).toBe(from(wide)!.observed);
+  });
+
   it("flags a depleted bin without dragging down the baseline", () => {
     // Nine normal bins and one empty: a heterozygous deletion in one bin.
-    const sites = evenSites(10000, 10, 20).filter(
-      (site) => site.pos < 4001 || site.pos > 5000,
+    const sites = evenSites(20).filter(
+      (site) => site.pos < 4000 || site.pos >= 5000,
     );
-    const result = buildHetDensity(sites, [1, 10001], { binCount: 10 });
+    const result = buildHetDensity(sites, REGION, { binSize: BIN });
 
     expect(result.baseline).toBe(20);
     const empty = result.bins[4];
+    expect(empty.start).toBe(4000);
     expect(empty.observed).toBe(0);
     expect(empty.state).toBe("informative");
     expect(empty.ratio).toBe(0);
     // exp(-20); decisive rather than merely suggestive.
     expect(empty.depletionP).toBeLessThan(1e-8);
 
-    const others = result.bins.filter((_, index) => index !== 4);
-    for (const bin of others) {
+    for (const bin of result.bins.filter((_, index) => index !== 4)) {
       expect(bin.ratio).toBeCloseTo(1, 10);
     }
   });
@@ -83,7 +94,7 @@ describe("buildHetDensity", () => {
     // The failure mode found in the oracle-bin run: six of seven truth deletion
     // intervals had near-zero callable sites in every sample. With no baseline
     // these must be uninformative, not six deletions.
-    const result = buildHetDensity([], [1, 10001], { binCount: 10 });
+    const result = buildHetDensity([], REGION, { binSize: BIN });
 
     expect(result.noBaseline).toBe(true);
     expect(result.baseline).toBe(0);
@@ -96,12 +107,11 @@ describe("buildHetDensity", () => {
   });
 
   it("treats male chrX outside PAR and chrY as absent, not deleted", () => {
-    // A handful of stray calls across the view, far below any usable density.
     const stray: ApiCoverageDot[] = [
       { pos: 500, value: 0.5 },
       { pos: 7200, value: 0.5 },
     ];
-    const result = buildHetDensity(stray, [1, 10001], { binCount: 10 });
+    const result = buildHetDensity(stray, REGION, { binSize: BIN });
 
     expect(result.noBaseline).toBe(true);
     expect(result.bins.every((bin) => bin.state === "no-baseline")).toBe(true);
@@ -109,9 +119,11 @@ describe("buildHetDensity", () => {
 
   it("withholds a verdict when too few sites are expected", () => {
     // Baseline of 3 per bin: an empty bin occurs by chance about 5 percent of
-    // the time, which is not evidence of a missing haplotype.
-    const result = buildHetDensity(evenSites(10000, 10, 3), [1, 10001], {
-      binCount: 10,
+    // the time, which is not evidence of a missing haplotype. This is also why
+    // the default bin is 20 kb: too narrow a bin makes every bin uninformative
+    // and the track draws nothing at all.
+    const result = buildHetDensity(evenSites(3), REGION, {
+      binSize: BIN,
       minExpected: 5,
     });
 
@@ -124,27 +136,16 @@ describe("buildHetDensity", () => {
     }
   });
 
-  it("counts a site on the region's final position", () => {
-    const result = buildHetDensity(
-      [{ pos: 10001, value: 0.5 }, ...evenSites(10000, 10, 6)],
-      [1, 10001],
-      { binCount: 10, minExpected: 1 },
-    );
-    expect(result.siteCount).toBe(61);
-    expect(result.excludedCount).toBe(0);
-    expect(result.bins[9].observed).toBe(7);
-  });
-
   it("excludes sites outside the region and non-finite positions", () => {
     const result = buildHetDensity(
       [
-        { pos: 0, value: 0.5 },
+        { pos: -50, value: 0.5 },
         { pos: 99999, value: 0.5 },
         { pos: NaN, value: 0.5 },
-        ...evenSites(10000, 10, 6),
+        ...evenSites(6),
       ],
-      [1, 10001],
-      { binCount: 10, minExpected: 1 },
+      REGION,
+      { binSize: BIN, minExpected: 1 },
     );
     expect(result.excludedCount).toBe(3);
     expect(result.siteCount).toBe(60);
@@ -156,13 +157,13 @@ describe("buildHetDensity", () => {
     // carrier keeps 138 stored sites inside the deletion but only 5 are het.
     const homozygous: ApiCoverageDot[] = Array.from(
       { length: 133 },
-      (_, i) => ({ pos: 4000 + i * 7, value: i % 2 === 0 ? 0.02 : 0.98 }),
+      (_, i) => ({ pos: 4000 + (i % 1000), value: i % 2 === 0 ? 0.02 : 0.98 }),
     );
-    const het = evenSites(10000, 10, 20).filter(
-      (site) => site.pos < 4001 || site.pos > 5000,
+    const het = evenSites(20).filter(
+      (site) => site.pos < 4000 || site.pos >= 5000,
     );
-    const result = buildHetDensity([...het, ...homozygous], [1, 10001], {
-      binCount: 10,
+    const result = buildHetDensity([...het, ...homozygous], REGION, {
+      binSize: BIN,
     });
 
     expect(result.homozygousCount).toBe(133);
@@ -178,25 +179,25 @@ describe("buildHetDensity", () => {
       pos: 100 + i * 40,
       value: i % 2 === 0 ? 1 / 3 : 2 / 3,
     }));
-    const result = buildHetDensity(dup, [1, 1001], { binCount: 1 });
+    const result = buildHetDensity(dup, [0, 999], { binSize: BIN });
     expect(result.homozygousCount).toBe(0);
     expect(result.bins[0].observed).toBe(20);
   });
 
   it("rejects an invalid heterozygous band", () => {
     expect(() =>
-      buildHetDensity([], [1, 100], { hetRange: [0.9, 0.1] }),
+      buildHetDensity([], REGION, { hetRange: [0.9, 0.1] }),
     ).toThrow();
     expect(() =>
-      buildHetDensity([], [1, 100], { hetRange: [-0.1, 0.8] }),
+      buildHetDensity([], REGION, { hetRange: [-0.1, 0.8] }),
     ).toThrow();
   });
 
-  it("rejects an invalid region or bin count", () => {
+  it("rejects an invalid region or bin size", () => {
     expect(() => buildHetDensity([], [10, 10], {})).toThrow();
-    expect(() => buildHetDensity([], [1, 100], { binCount: 0 })).toThrow();
-    expect(() => buildHetDensity([], [1, 100], { binCount: 2.5 })).toThrow();
-    expect(() => buildHetDensity([], [1, 100], { minExpected: 0 })).toThrow();
+    expect(() => buildHetDensity([], REGION, { binSize: 0 })).toThrow();
+    expect(() => buildHetDensity([], REGION, { binSize: -5 })).toThrow();
+    expect(() => buildHetDensity([], REGION, { minExpected: 0 })).toThrow();
     expect(() => buildHetDensity([], [NaN, 100], {})).toThrow();
   });
 });

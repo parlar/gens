@@ -57,8 +57,18 @@ export interface HetDensity {
 }
 
 export interface HetDensityOptions {
-  /** Number of bins across the region. */
-  binCount?: number;
+  /**
+   * Bin width in base pairs. Bins are aligned to absolute genomic coordinates,
+   * not to the current view, so panning does not move the boundaries and a bin
+   * keeps the same value as the user scrolls.
+   *
+   * The width has to be wide enough that a normal bin expects more sites than
+   * `minExpected`, or every bin is uninformative and the track draws nothing.
+   * The pilot measured 0.38-0.72 heterozygous sites per kb, so a 20 kb bin
+   * expects roughly 8-14 and clears the default minimum; a 3.5 kb bin expects
+   * 1-3 and does not.
+   */
+  binSize?: number;
   /**
    * BAF interval within which a site is treated as heterozygous.
    *
@@ -84,7 +94,7 @@ export interface HetDensityOptions {
   minExpected?: number;
 }
 
-const DEFAULT_BIN_COUNT = 100;
+const DEFAULT_BIN_SIZE = 20_000;
 const DEFAULT_MIN_EXPECTED = 5;
 const DEFAULT_HET_RANGE: Rng = [0.15, 0.85];
 
@@ -139,7 +149,7 @@ export function buildHetDensity(
   region: Rng,
   options: HetDensityOptions = {},
 ): HetDensity {
-  const binCount = options.binCount ?? DEFAULT_BIN_COUNT;
+  const binSize = options.binSize ?? DEFAULT_BIN_SIZE;
   const minExpected = options.minExpected ?? DEFAULT_MIN_EXPECTED;
   const hetRange = options.hetRange ?? DEFAULT_HET_RANGE;
 
@@ -153,18 +163,21 @@ export function buildHetDensity(
   }
 
   if (
-    !Number.isInteger(binCount) ||
-    binCount < 1 ||
-    binCount > 2000 ||
+    !Number.isFinite(binSize) ||
+    binSize <= 0 ||
     !Number.isFinite(minExpected) ||
     minExpected <= 0 ||
     !region.every(Number.isFinite) ||
     region[0] >= region[1]
   ) {
-    throw new Error("Invalid heterozygote density region or bin count");
+    throw new Error("Invalid heterozygote density region or bin size");
   }
 
-  const width = (region[1] - region[0]) / binCount;
+  // Bin boundaries come from absolute coordinates so that they are identical
+  // in every view that covers them.
+  const firstBin = Math.floor(region[0] / binSize);
+  const lastBin = Math.floor(region[1] / binSize);
+  const binCount = lastBin - firstBin + 1;
   const counts = new Array<number>(binCount).fill(0);
   let siteCount = 0;
   let excludedCount = 0;
@@ -187,11 +200,11 @@ export function buildHetDensity(
       homozygousCount += 1;
       continue;
     }
-    // The final position belongs to the last bin rather than one past the end.
-    const index = Math.min(
-      binCount - 1,
-      Math.floor((site.pos - region[0]) / width),
-    );
+    const index = Math.floor(site.pos / binSize) - firstBin;
+    if (index < 0 || index >= binCount) {
+      excludedCount += 1;
+      continue;
+    }
     counts[index] += 1;
     siteCount += 1;
   }
@@ -200,8 +213,8 @@ export function buildHetDensity(
   const noBaseline = baseline <= 0;
 
   const bins = counts.map((observed, index) => {
-    const start = region[0] + index * width;
-    const end = start + width;
+    const start = (firstBin + index) * binSize;
+    const end = start + binSize;
     if (noBaseline) {
       // Male chrX outside the pseudoautosomal regions, chrY, and unmappable
       // stretches all land here. Reporting them as depleted would invent an
