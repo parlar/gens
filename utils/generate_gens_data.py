@@ -310,10 +310,20 @@ def parse_gvcfvaf(
             if len(entry.ref) > 1:
                 continue
 
+            # Whether there is an observation at all is decided by depth and
+            # genotype, so those come before the shape of the record. A gVCF
+            # reference block carries no AD and is a real homozygous-reference
+            # observation, which belongs on the plot at zero. A no-call, or a
+            # position below the requested depth, is not an observation: it
+            # used to be written as zero too, which puts "nothing was measured
+            # here" at the same height as "no alt allele was seen here".
+            if not entry.pass_depth_filter(depth_threshold):
+                continue
+            if not entry.has_genotype_call():
+                continue
+
             if "AD" not in entry.sample_entries:
                 baf_freq = 0
-            elif not entry.pass_depth_filter(depth_threshold):
-                continue
             else:
                 parsed_baf = entry.parse_b_allele_freq()
                 if parsed_baf is None:
@@ -359,13 +369,21 @@ class GVCFEntry:
         self.sample_entries = dict(zip(sample_keys, sample_vals))
 
     def pass_depth_filter(self, depth_filter: int) -> bool:
-        depth = self.sample_entries.get("DP")
-        if not depth:
-            return False
-        if int(depth) >= depth_filter:
-            return True
-        else:
-            return False
+        # A gVCF reference block reports MIN_DP, the lowest depth across the
+        # block, instead of DP. Reading only DP would treat every such block as
+        # depth zero, and since the depth filter now decides whether a record
+        # is written at all, that would silently drop them.
+        for key in ("DP", "MIN_DP"):
+            raw = self.sample_entries.get(key)
+            if raw is None or raw in ("", "."):
+                continue
+            return int(raw) >= depth_filter
+        return False
+
+    def has_genotype_call(self) -> bool:
+        """Whether the caller made a call here, as opposed to `./.`."""
+        genotype = self.sample_entries.get("GT")
+        return genotype is not None and "." not in genotype
 
     def parse_b_allele_freq(self) -> Optional[float]:
         """

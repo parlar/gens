@@ -2,6 +2,7 @@ from pathlib import Path
 from types import ModuleType
 
 import mongomock
+import pytest
 
 from gens.db.collections import (
     SAMPLE_ANNOTATION_TRACKS_COLLECTION,
@@ -161,6 +162,51 @@ def test_delete_sample_annotation_cli_removes_documents(
     )
 
     assert tracks.count_documents({}) == 0
+
+
+class TestAnEmptyReplacementKeepsWhatIsLoaded:
+    """Replacing a track with a file that parses to nothing used to delete the
+    existing records first and only then fail on the empty insert, so the track
+    was left with none. The general annotation loader already guarded this."""
+
+    def _load(self, cli_load: ModuleType, bed_file: Path) -> None:
+        cli_load.sample_annotation.callback(
+            sample_id="sample1",
+            case_id="caseA",
+            genome_build=GenomeBuild(38),
+            file=bed_file,
+            name="trackA",
+            force=True,
+        )
+
+    def test_the_existing_records_survive(
+        self, cli_load: ModuleType, tmp_path: Path, db: mongomock.Database
+    ) -> None:
+        bed_file = tmp_path / "track.bed"
+        _write_bed(bed_file, 0, 10)
+        self._load(cli_load, bed_file)
+
+        annotations = db.get_collection(SAMPLE_ANNOTATIONS_COLLECTION)
+        assert annotations.count_documents({}) == 1, "precondition: one record loaded"
+
+        empty = tmp_path / "empty.bed"
+        empty.write_text("")
+        with pytest.raises(ValueError, match="no valid annotations"):
+            self._load(cli_load, empty)
+
+        assert annotations.count_documents({}) == 1
+
+    def test_a_track_this_run_created_is_not_left_behind(
+        self, cli_load: ModuleType, tmp_path: Path, db: mongomock.Database
+    ) -> None:
+        # Nothing existed before, so the empty file leaves nothing behind
+        # either, rather than an empty track in the source list.
+        empty = tmp_path / "empty.bed"
+        empty.write_text("")
+        with pytest.raises(ValueError, match="no valid annotations"):
+            self._load(cli_load, empty)
+
+        assert db.get_collection(SAMPLE_ANNOTATION_TRACKS_COLLECTION).count_documents({}) == 0
 
 
 def _build_track() -> SampleAnnotationTrack:

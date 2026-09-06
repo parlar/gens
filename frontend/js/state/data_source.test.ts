@@ -79,11 +79,15 @@ describe("read connections", () => {
 
   beforeEach(() => getReadEvidence.mockReset());
 
-  test("does not ask for a window the endpoint refuses", async () => {
-    const source = sourceOver(EVIDENCE_WINDOW + 1);
+  // The route counts the window inclusively, as end - start + 1, and refuses
+  // anything above EVIDENCE_WINDOW. These two cases sit either side of that
+  // exact boundary; this test used to bless [1, EVIDENCE_WINDOW + 1], which
+  // the server rejects with a 422.
+  test("does not ask for a window one base above the limit", async () => {
+    const source = sourceOver(EVIDENCE_WINDOW);
     const data = await source.getReadConnections(sample, "1", [
       1,
-      2 + EVIDENCE_WINDOW,
+      1 + EVIDENCE_WINDOW,
     ]);
 
     expect(getReadEvidence).not.toHaveBeenCalled();
@@ -96,10 +100,10 @@ describe("read connections", () => {
       connections: [],
       truncated: false,
     });
-    const source = sourceOver(EVIDENCE_WINDOW);
+    const source = sourceOver(EVIDENCE_WINDOW - 1);
     const data = await source.getReadConnections(sample, "1", [
       1,
-      1 + EVIDENCE_WINDOW,
+      EVIDENCE_WINDOW,
     ]);
 
     expect(getReadEvidence).toHaveBeenCalledTimes(1);

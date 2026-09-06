@@ -98,8 +98,14 @@ def create_app() -> FastAPI:
     register_blueprints(flask_app)
     register_errors(flask_app)
 
-    async def require_api_auth(request: Request) -> None:
-        """Require a valid logged-in session for API routes"""
+    def require_api_auth(request: Request) -> None:
+        """Require a valid logged-in session for API routes.
+
+        Deliberately not async. The session check reaches PyMongo, and this
+        dependency runs before every API route, so as a coroutine it blocked
+        the event loop for every other request on the way in — which is the
+        thing moving the route handlers to `def` was meant to stop.
+        """
 
         if settings.authentication == AuthMethod.DISABLED:
             return
@@ -129,7 +135,7 @@ def create_app() -> FastAPI:
 
     # Require the user to be authenticated before accessing the FastAPI access points
     @fastapi_app.get("/api/openapi.json", include_in_schema=False)
-    async def openapi_json(request: Request):
+    def openapi_json(request: Request):
         if (
             settings.authentication != AuthMethod.DISABLED
             and not is_docs_request_authorized(flask_app, request)
@@ -140,7 +146,7 @@ def create_app() -> FastAPI:
         return JSONResponse(fastapi_app.openapi())
 
     @fastapi_app.get("/api/docs", include_in_schema=False)
-    async def swagger_ui(request: Request):
+    def swagger_ui(request: Request):
         if (
             settings.authentication != AuthMethod.DISABLED
             and not is_docs_request_authorized(flask_app, request)
@@ -153,7 +159,7 @@ def create_app() -> FastAPI:
         )
 
     @fastapi_app.get("/api/docs/oauth2-redirect", include_in_schema=False)
-    async def swagger_ui_oauth2_redirect(request: Request):
+    def swagger_ui_oauth2_redirect(request: Request):
         if (
             settings.authentication != AuthMethod.DISABLED
             and not is_docs_request_authorized(flask_app, request)
@@ -162,7 +168,7 @@ def create_app() -> FastAPI:
         return get_swagger_ui_oauth2_redirect_html()
 
     @fastapi_app.get("/api/redoc", include_in_schema=False)
-    async def redoc(request: Request):
+    def redoc(request: Request):
         if (
             settings.authentication != AuthMethod.DISABLED
             and not is_docs_request_authorized(flask_app, request)

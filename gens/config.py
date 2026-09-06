@@ -219,13 +219,19 @@ class Settings(BaseSettings):
             raise ValueError(
                 "auth_user_db='variant' requires variant_db to be configured"
             )
-        if (
-            self.authentication != AuthMethod.DISABLED
-            and self.secret_key == DEFAULT_SECRET_KEY
-        ):
+        # An unset variable arrives as the empty string, not as a missing one,
+        # so checking only for the published default would let SECRET_KEY= sail
+        # past and sign cookies with nothing at all.
+        secret_is_usable = (
+            self.secret_key != DEFAULT_SECRET_KEY and self.secret_key.strip() != ""
+        )
+        if self.authentication != AuthMethod.DISABLED and not secret_is_usable:
             raise ValueError(
                 "secret_key must be set to a private value when authentication is "
-                "enabled, the default key allows anyone to forge session cookies"
+                "enabled, the default key allows anyone to forge session cookies. "
+                "Set the SECRET_KEY environment variable (docker compose reads it "
+                "from GENS_SECRET_KEY) to a private random string, or set "
+                "AUTHENTICATION=disabled for a local demo with no login."
             )
         return self
 

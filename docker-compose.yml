@@ -8,6 +8,13 @@ services:
     build: .
     environment:
       - AUTHENTICATION=${GENS_AUTHENTICATION:-simple}
+      # Authentication is on by default here, and Gens refuses to start with
+      # the built-in signing key when it is: anyone holding that published key
+      # can forge a session cookie. Set GENS_SECRET_KEY to a private random
+      # string. Left empty rather than made mandatory here because compose
+      # cannot make it conditional, and it is genuinely not needed when
+      # GENS_AUTHENTICATION=disabled; the app says which of the two to do.
+      - SECRET_KEY=${GENS_SECRET_KEY:-}
     volumes:
       - ./volumes/gens/data:/home/app/data
       - ./volumes/gens/wgs:/home/app/access/wgs

@@ -67,21 +67,42 @@ class TestDatabaseClients:
         pytest.fail("get_gens_db not found")
 
 
+APP_FILE = Path(__file__).resolve().parents[1] / "gens" / "app.py"
+
+
+def _decorated_by(node: ast.AST, names: tuple[str, ...]) -> bool:
+    """Whether a function carries a decorator like @router.get or @app.get."""
+    for decorator in getattr(node, "decorator_list", []):
+        target = decorator.func if isinstance(decorator, ast.Call) else decorator
+        if (
+            isinstance(target, ast.Attribute)
+            and isinstance(target.value, ast.Name)
+            and target.value.id in names
+        ):
+            return True
+    return False
+
+
 def route_handlers():
-    """Every function in gens/routes that carries a @router decorator."""
-    for path in sorted(ROUTES_DIR.glob("*.py")):
+    """Every function reached on an API request, wherever it is defined.
+
+    This walks the whole tree rather than the module body, and covers app.py as
+    well as the route modules. Both mattered: the shared authentication
+    dependency is a nested function in app.py, so an earlier version of this
+    test that looked only at top-level functions in gens/routes could not see
+    it, and it stayed async and blocking after every route handler had been
+    fixed.
+    """
+    for path in [*sorted(ROUTES_DIR.glob("*.py")), APP_FILE]:
         tree = ast.parse(path.read_text())
-        for node in tree.body:
+        for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
-            decorated = any(
-                isinstance(d, ast.Call)
-                and isinstance(d.func, ast.Attribute)
-                and isinstance(d.func.value, ast.Name)
-                and d.func.value.id == "router"
-                for d in node.decorator_list
-            )
-            if decorated:
+            if _decorated_by(node, ("router", "fastapi_app")):
+                yield path.name, node
+            elif path == APP_FILE and node.name == "require_api_auth":
+                # Not decorated; passed to Depends() and so run for every
+                # single API request.
                 yield path.name, node
 
 
@@ -89,6 +110,13 @@ class TestRouteConcurrency:
     def test_there_are_route_handlers_to_check(self):
         # A silent zero here would make the next test vacuous.
         assert len(list(route_handlers())) > 15
+
+    def test_the_shared_auth_dependency_is_covered(self):
+        # The one that got away last time, named explicitly so a refactor that
+        # moves it out of view fails here rather than going quiet.
+        names = {node.name for _, node in route_handlers()}
+        assert "require_api_auth" in names
+        assert "openapi_json" in names
 
     @pytest.mark.parametrize(
         "case", list(route_handlers()), ids=lambda case: f"{case[0]}::{case[1].name}"

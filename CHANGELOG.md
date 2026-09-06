@@ -17,6 +17,13 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Stop writing a BAF of zero for positions where nothing was measured: a no-call or a position below the requested depth is now omitted rather than plotted at the same height as a position with no alt allele
+- Keep gVCF reference blocks that report `MIN_DP` instead of `DP`, which the depth filter previously read as depth zero
+- Reject an empty sample annotation replacement before deleting the existing records, so a file that parses to nothing no longer empties the track
+- Refuse to start with an empty or whitespace `SECRET_KEY` when authentication is enabled; an unset environment variable arrives as an empty string, which the previous check let through
+- Pass `SECRET_KEY` through in `docker-compose.yml` and document providing it, so the documented `docker compose up -d` path starts again
+- Run the shared API authentication dependency and the protected docs handlers in the threadpool instead of on the event loop, where their session lookup blocked every other request
+- Compare the read-connections window inclusively in the frontend, matching the route, instead of sending the one boundary window the server rejects
 - Send the annotation track id as `track_id` from the sample annotation tracks endpoint too, instead of `_id`, so the two sibling endpoints agree and the published schema describes what is actually sent
 - Show a variant's allele depths in its tooltip: they were read from a `sample` field the API does not return, so the row was always empty
 - Stop the variant tooltip throwing when the viewed sample has no genotype call on that variant

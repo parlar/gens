@@ -4,6 +4,26 @@
 
 Using docker, a simple demo and development instance of Gens can be launched with the command `docker compose up -d`.
 
+Authentication is enabled by default, and Gens will not start with its built-in
+session signing key: that key is published in this repository, so anyone could
+use it to forge a session cookie for an existing user. Provide a private one
+before starting:
+
+```bash
+export GENS_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+docker compose up -d
+```
+
+Keep the same value between restarts — changing it signs everyone out. Store it
+somewhere the deployment reads it from (a `.env` file next to
+`docker-compose.yml`, or your secret manager) rather than in the compose file
+itself.
+
+To run without any login at all, for a local demo only, set
+`GENS_AUTHENTICATION=disabled` instead; no key is needed then. Do not expose
+such an instance beyond your own machine — with authentication off, anyone who
+can reach the port can read every sample.
+
 Gens requires access to a directory where the `xxx.baf.bed.gz` and `xxx.cov.bed.gz` files are stored. This can be achived by mounting the directory. See sample docker-compose below.
 
 ```yaml

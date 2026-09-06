@@ -18,6 +18,7 @@ from gens.crud.annotations import (
 from gens.crud.sample_annotations import (
     create_sample_annotation_track,
     create_sample_annotations_for_track,
+    delete_sample_annotation_track,
     delete_sample_annotations_for_track,
     get_sample_annotation_track,
 )
@@ -132,6 +133,18 @@ def load_sample_annotation_data(
         )
         for rec in bed_records
     ]
+
+    # Validate the replacement before touching the existing track, so a bad
+    # file cannot orphan the annotations that are already loaded. The general
+    # annotation loader below does the same; this one used to delete first and
+    # then fail on the empty insert, leaving the track with no records at all.
+    if len(annotations) == 0:
+        if track_in_db is None:
+            # Only remove the track if this run is what created it.
+            delete_sample_annotation_track(track_id, db)
+        raise ValueError(
+            "Something went wrong parsing the annotations file, no valid annotations found."
+        )
 
     if track_in_db is not None:
         delete_sample_annotations_for_track(track_id, db)

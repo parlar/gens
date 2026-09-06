@@ -154,7 +154,12 @@ export function getRenderDataSource(
     // The endpoint refuses a wider window, so the guard belongs here rather
     // than in an error path: a whole chromosome is wider than this, and that is
     // the view a reader lands on.
-    if (xRange[1] - xRange[0] > EVIDENCE_WINDOW) {
+    //
+    // The range is inclusive of both ends, which is how the route counts it
+    // (end - start + 1). Leaving the + 1 off here made this guard one base
+    // more permissive than the server, so the exact boundary window was sent
+    // and came back 422.
+    if (xRange[1] - xRange[0] + 1 > EVIDENCE_WINDOW) {
       return toTrackData(
         null,
         `Zoom in below ${EVIDENCE_WINDOW / 1_000_000} Mb to see read connections`,

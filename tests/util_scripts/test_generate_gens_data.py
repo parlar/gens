@@ -207,6 +207,57 @@ def test_parse_gvcfvaf_skips_missing_genotype(tmp_path: Path, capsys):
     assert "1 variants skipped!" in captured.err
 
 
+def run_gvcf(tmp_path: Path, record: str, depth_threshold: int = 10) -> list[str]:
+    """Run one gVCF record at position 1:10 through the BAF conversion."""
+    gvcf_file = tmp_path / "sample.vcf.gz"
+    with gzip.open(gvcf_file, "wt") as fh:
+        fh.write("##header\n")
+        fh.write(record if record.endswith("\n") else record + "\n")
+
+    positions_file = tmp_path / "positions.tsv"
+    positions_file.write_text("1\t10")
+
+    output = io.StringIO()
+    parse_gvcfvaf(gvcf_file, positions_file, output, depth_threshold)
+    return output.getvalue().splitlines()
+
+
+class TestBafNeedsAnObservation:
+    """A record with no allele depths used to be written as BAF zero first and
+    checked afterwards, so a position where nothing was measured was plotted at
+    the same height as a position where no alt allele was seen."""
+
+    def test_a_no_call_with_no_depth_is_not_written(self, tmp_path: Path):
+        assert run_gvcf(tmp_path, "1\t10\t.\tA\t<NON_REF>\t.\t.\t.\tGT:DP\t./.:0") == []
+
+    def test_a_reference_block_is_still_written_as_zero(self, tmp_path: Path):
+        # This is what the missing-AD branch is for: a gVCF reference block is
+        # a real homozygous-reference observation and belongs on the plot.
+        assert run_gvcf(
+            tmp_path, "1\t10\t.\tA\t<NON_REF>\t.\t.\t.\tGT:DP\t0/0:30"
+        ) == ["1\t10\t0"]
+
+    def test_a_reference_block_reporting_min_dp_is_written(self, tmp_path: Path):
+        # GATK reference blocks carry MIN_DP rather than DP. Reading only DP
+        # would treat them as depth zero and drop every one of them.
+        assert run_gvcf(
+            tmp_path, "1\t10\t.\tA\t<NON_REF>\t.\t.\t.\tGT:MIN_DP\t0/0:30"
+        ) == ["1\t10\t0"]
+
+    def test_a_reference_block_below_the_depth_threshold_is_not_written(
+        self, tmp_path: Path
+    ):
+        # The depth the caller asked for applies to these too; it used to be
+        # skipped entirely for records without AD.
+        assert run_gvcf(tmp_path, "1\t10\t.\tA\t<NON_REF>\t.\t.\t.\tGT:DP\t0/0:3") == []
+
+    def test_a_genotyped_record_still_reports_its_frequency(self, tmp_path: Path):
+        # The control: nothing above changes an ordinary heterozygous call.
+        assert run_gvcf(tmp_path, "1\t10\t.\tA\tC\t.\tPASS\tEND=10\tGT:AD:DP\t0/1:8,2:10") == [
+            "1\t10\t0.2"
+        ]
+
+
 def test_generate_gens_data_end_to_end(tmp_path: Path):
 
     outdir = tmp_path / "out"
