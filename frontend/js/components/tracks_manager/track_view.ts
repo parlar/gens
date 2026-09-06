@@ -31,6 +31,7 @@ import {
 import { getTrack as getTrack } from "./utils/create_tracks";
 import { getOpenTrackContextMenu } from "./utils/track_menues";
 import { SessionPosition } from "../../state/session_helpers/session_position";
+import { pixelsToBases } from "../../util/panning";
 
 const trackHeight = STYLE.tracks.trackHeight;
 
@@ -270,6 +271,25 @@ export class TrackView extends ShadowBaseElement {
       },
       (range: Rng) => session.addHighlight(range),
       (id: string) => session.removeHighlight(id),
+      (pixelDeltaX: number, isDone: boolean) => {
+        if (isDone) {
+          // Only now fetch data for wherever the reader ended up. Refetching on
+          // every mouse move would put a request behind every pixel.
+          render({ reloadData: true, positionOnly: true });
+          return;
+        }
+        // Dragging left shows what lies to the right, so the view moves against
+        // the pointer, the way a map does under a finger.
+        sessionPos.moveXRange(
+          -pixelsToBases(
+            pixelDeltaX,
+            sessionPos.getXRange(),
+            this.tracksContainer.offsetWidth,
+            STYLE.yAxis.width,
+          ),
+        );
+        render({ positionOnly: true });
+      },
     );
 
     this.addElementListener(this.tracksContainer, "click", () => {

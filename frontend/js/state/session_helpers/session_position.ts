@@ -1,4 +1,5 @@
 import { zoomIn, zoomOut } from "../../util/navigation";
+import { pannedRange } from "../../util/panning";
 
 export class SessionPosition {
   private chromosome: Chromosome;
@@ -100,16 +101,13 @@ export class SessionPosition {
   }
 
   /**
-   * Distance can be negative
+   * Slide the view sideways. Distance can be negative.
+   *
+   * The window keeps its width at the ends of a chromosome; see pannedRange.
    */
   public moveXRange(distance: number): void {
-    const startRange = this.getXRange();
-    const chromSize = this.getCurrentChromSize();
-    // Chromosome coordinates are 1-based, so 0 is not a valid position
-    const newRange: Rng = [
-      Math.max(1, Math.floor(startRange[0] + distance)),
-      Math.min(Math.floor(startRange[1] + distance), chromSize),
-    ];
-    this.setViewRange(newRange);
+    this.setViewRange(
+      pannedRange(this.getXRange(), distance, this.getCurrentChromSize()),
+    );
   }
 }

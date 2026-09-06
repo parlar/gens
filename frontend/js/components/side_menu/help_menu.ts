@@ -23,7 +23,7 @@ template.innerHTML = String.raw`
   <div id="help-container">
     <h3>Mouse navigation</h3>
     <ul>
-        <li><b>click</b> and <b>drag</b> with mouse while holding <b>space</b> to move</li>
+        <li><b>Drag</b> the tracks to move along the chromosome</li>
         <li>Navigate to a chromosome by <b>click</b> in the overview chart (bottom)</li>
         <li>Zoom in by <b>Shift+click</b></li>
         <li>Zoom out by <b>Ctrl+click</b></li>

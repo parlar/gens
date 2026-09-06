@@ -10,6 +10,7 @@ export function setupDrag(
   onSetViewRange: (range: Rng) => void,
   onAddHighlight: (range: Rng) => void,
   onRemoveHighlight: (id: string) => void,
+  onPan: (pixelDelta: number, isDone: boolean) => void,
 ) {
   const onDragEnd = (pxRangeX: Rng, _pxRangeY: Rng, shiftPress: boolean) => {
     const xRange = getXRange();
@@ -33,8 +34,12 @@ export function setupDrag(
     }
   };
 
-  initializeDragSelect(tracksContainer, onDragEnd, onRemoveHighlight, () =>
-    getMarkerModeOn(),
+  initializeDragSelect(
+    tracksContainer,
+    onDragEnd,
+    onRemoveHighlight,
+    () => getMarkerModeOn(),
+    onPan,
   );
 }
 

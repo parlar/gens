@@ -8,9 +8,19 @@ export function initializeDragSelect(
   onDragRelease: (rangeX: Rng, rangeY: Rng, shiftPress: boolean) => void,
   onMarkerRemove: (id: string) => void,
   getMarkerMode: () => boolean,
+  /**
+   * Drag with no modifier, reported as it happens.
+   *
+   * `pixelDelta` is the movement since the last call, so the view can follow
+   * the pointer; `isDone` marks the release, where the caller reloads the data
+   * for wherever the reader ended up.
+   */
+  onPan: (pixelDelta: number, isDone: boolean) => void = () => {},
 ) {
   let isDragging = false;
   let isMoved = false;
+  let isPanning = false;
+  let panLastX = 0;
   // Otherwise, the drag also causes a shift + click, i.e. zoom in
   let suppressNextClick = false;
   let dragStart: { x: number; y: number };
@@ -54,11 +64,29 @@ export function initializeDragSelect(
       );
       element.appendChild(marker);
     } else {
-      // FIXME: Drag to pan here
+      // Plain drag grabs the view and slides it, the way a map does. No
+      // modifier: holding a key and a trackpad button at once is a two-handed
+      // operation, which is what made the older space-and-drag unusable.
+      isPanning = true;
+      panLastX = pos.x;
+      element.classList.add("grabbing");
     }
   });
 
   element.addEventListener("mousemove", (event) => {
+    if (isPanning) {
+      const pos = getLocalPos(event);
+      const delta = pos.x - panLastX;
+      if (delta !== 0) {
+        panLastX = pos.x;
+        // Deliberately not setting isMoved: that flag means "a selection was
+        // dragged out", and setting it here would drop a highlight on the
+        // reader every time they slid the view.
+        onPan(delta, false);
+      }
+      return;
+    }
+
     if (!isDragging || !marker) {
       return;
     }
@@ -70,6 +98,13 @@ export function initializeDragSelect(
   });
 
   document.addEventListener("mouseup", (event) => {
+    if (isPanning) {
+      isPanning = false;
+      element.classList.remove("grabbing");
+      // A pan ends on a click, and an unsuppressed one would zoom.
+      suppressNextClick = event.composedPath().includes(element);
+      onPan(0, true);
+    }
     if (isDragging && isMoved) {
       const pos = getLocalPos(event);
       const sortedX = sortRange([dragStart.x, pos.x]);
