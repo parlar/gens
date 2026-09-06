@@ -150,6 +150,48 @@ describe("buildHetDensity", () => {
     expect(result.siteCount).toBe(60);
   });
 
+  it("counts only sites inside the heterozygous BAF band", () => {
+    // The stored BAF track holds homozygous sites too. Counting them hides a
+    // deletion: this is the real shape of the chr1 truth event, where the
+    // carrier keeps 138 stored sites inside the deletion but only 5 are het.
+    const homozygous: ApiCoverageDot[] = Array.from(
+      { length: 133 },
+      (_, i) => ({ pos: 4000 + i * 7, value: i % 2 === 0 ? 0.02 : 0.98 }),
+    );
+    const het = evenSites(10000, 10, 20).filter(
+      (site) => site.pos < 4001 || site.pos > 5000,
+    );
+    const result = buildHetDensity([...het, ...homozygous], [1, 10001], {
+      binCount: 10,
+    });
+
+    expect(result.homozygousCount).toBe(133);
+    expect(result.baseline).toBe(20);
+    const empty = result.bins[4];
+    expect(empty.observed).toBe(0);
+    expect(empty.ratio).toBe(0);
+    expect(empty.depletionP).toBeLessThan(1e-8);
+  });
+
+  it("keeps the 1/3 and 2/3 fractions of a three-copy state", () => {
+    const dup: ApiCoverageDot[] = Array.from({ length: 20 }, (_, i) => ({
+      pos: 100 + i * 40,
+      value: i % 2 === 0 ? 1 / 3 : 2 / 3,
+    }));
+    const result = buildHetDensity(dup, [1, 1001], { binCount: 1 });
+    expect(result.homozygousCount).toBe(0);
+    expect(result.bins[0].observed).toBe(20);
+  });
+
+  it("rejects an invalid heterozygous band", () => {
+    expect(() =>
+      buildHetDensity([], [1, 100], { hetRange: [0.9, 0.1] }),
+    ).toThrow();
+    expect(() =>
+      buildHetDensity([], [1, 100], { hetRange: [-0.1, 0.8] }),
+    ).toThrow();
+  });
+
   it("rejects an invalid region or bin count", () => {
     expect(() => buildHetDensity([], [10, 10], {})).toThrow();
     expect(() => buildHetDensity([], [1, 100], { binCount: 0 })).toThrow();

@@ -50,6 +50,8 @@ export interface HetDensity {
   siteCount: number;
   /** Sites dropped for a non-finite or out-of-region position. */
   excludedCount: number;
+  /** Sites in the region whose BAF is outside the heterozygous interval. */
+  homozygousCount: number;
   /** True when no baseline could be established for this view. */
   noBaseline: boolean;
 }
@@ -57,6 +59,22 @@ export interface HetDensity {
 export interface HetDensityOptions {
   /** Number of bins across the region. */
   binCount?: number;
+  /**
+   * BAF interval within which a site is treated as heterozygous.
+   *
+   * The stored BAF track holds every site, homozygous ones included, so a plain
+   * count of points does not measure heterozygosity. Inside a real 79 kb
+   * heterozygous deletion the carrier still has 138 stored sites, of which only
+   * 5 fall in this interval; counting all 138 hides the event entirely.
+   *
+   * At the depths seen here a true heterozygote sits near 0.5 with a sampling
+   * SD around 0.09, so the default spans roughly four SD either side and also
+   * retains the 1/3 and 2/3 fractions of a three-copy state. This is selection
+   * by displayed value, which is ascertainment: it cannot separate a genuine
+   * homozygote from a heterozygote whose imbalance is extreme. Genotypes or a
+   * fixed common-SNP site list would be needed to avoid that.
+   */
+  hetRange?: Rng;
   /**
    * Expected sites a bin needs before its count is interpreted. Below this,
    * observing zero is not distinguishable from ordinary sampling: at an
@@ -68,6 +86,7 @@ export interface HetDensityOptions {
 
 const DEFAULT_BIN_COUNT = 100;
 const DEFAULT_MIN_EXPECTED = 5;
+const DEFAULT_HET_RANGE: Rng = [0.15, 0.85];
 
 /**
  * Poisson probability of at most `k` events when `lambda` are expected.
@@ -122,6 +141,16 @@ export function buildHetDensity(
 ): HetDensity {
   const binCount = options.binCount ?? DEFAULT_BIN_COUNT;
   const minExpected = options.minExpected ?? DEFAULT_MIN_EXPECTED;
+  const hetRange = options.hetRange ?? DEFAULT_HET_RANGE;
+
+  if (
+    !hetRange.every(Number.isFinite) ||
+    hetRange[0] < 0 ||
+    hetRange[1] > 1 ||
+    hetRange[0] >= hetRange[1]
+  ) {
+    throw new Error("Invalid heterozygous BAF range");
+  }
 
   if (
     !Number.isInteger(binCount) ||
@@ -139,6 +168,7 @@ export function buildHetDensity(
   const counts = new Array<number>(binCount).fill(0);
   let siteCount = 0;
   let excludedCount = 0;
+  let homozygousCount = 0;
 
   for (const site of sites) {
     if (
@@ -147,6 +177,14 @@ export function buildHetDensity(
       site.pos > region[1]
     ) {
       excludedCount += 1;
+      continue;
+    }
+    if (
+      !Number.isFinite(site.value) ||
+      site.value < hetRange[0] ||
+      site.value > hetRange[1]
+    ) {
+      homozygousCount += 1;
       continue;
     }
     // The final position belongs to the last bin rather than one past the end.
@@ -200,5 +238,12 @@ export function buildHetDensity(
     };
   });
 
-  return { bins, baseline, siteCount, excludedCount, noBaseline };
+  return {
+    bins,
+    baseline,
+    siteCount,
+    excludedCount,
+    homozygousCount,
+    noBaseline,
+  };
 }
