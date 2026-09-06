@@ -12,9 +12,16 @@ threshold on these counts exists at any bin size between 20 kb and 200 kb: see
 docs/research/baf_noise/results-panel-reference.md. Interpretation needs the
 coverage track beside it.
 
-What the reference does provide is a per-bin expectation that does not depend on
-where the user is looking, and an explicit statement that a bin is uncallable in
-every sample rather than depleted in this one.
+The scale a bin is shown against is the sample's own typical bin on the same
+chromosome, not the bins that happen to be in view and not the other samples
+opened beside it. Both alternatives were measured and rejected. A within-view
+baseline makes a bin's value depend on where the user is looking, so zooming
+onto an event erases it. Peer samples are worse for a family case: heterozygote
+density is precisely what siblings differ in by descent, and at
+chr1:189,580,001-189,600,000 all six reference-pedigree samples carry the same
+35 or 36 stored sites while five are homozygous across the block and one is
+heterozygous at every site, so a peer reference reports a 35-fold excess in an
+entirely ordinary region.
 """
 
 from __future__ import annotations
@@ -91,6 +98,35 @@ def count_het_sites(
         if 0 <= index < len(counts):
             counts[index] += 1
     return counts
+
+
+def chromosome_baseline(
+    tabix: TabixFile,
+    chromosome: str,
+    chromosome_length: int,
+    bin_size: int = DEFAULT_BIN_SIZE,
+    het_range: tuple[float, float] = DEFAULT_HET_RANGE,
+) -> float:
+    """The sample's typical bin on this chromosome: the median over every bin.
+
+    Empty bins are counted rather than skipped. Dropping them would define the
+    typical bin as the typical *callable* bin, which raises the scale and makes
+    every uncallable stretch look depleted; that is the failure this scale exists
+    to avoid. The median rather than the mean so that a real event, or a handful
+    of very dense bins, does not move it.
+
+    Scanning a whole chromosome costs about a quarter of a second for chromosome
+    1 at 20 kb bins, measured on a 29x WGS sample.
+    """
+    counts = count_het_sites(
+        tabix,
+        chromosome,
+        0,
+        max(0, (chromosome_length - 1) // bin_size),
+        bin_size,
+        het_range,
+    )
+    return float(median(counts)) if counts else 0.0
 
 
 def panel_reference(per_sample_counts: list[list[int]]) -> list[float]:

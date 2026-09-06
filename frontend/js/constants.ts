@@ -291,7 +291,9 @@ export const dotTrackTypes: TrackType[] = [
 ];
 
 export const BAF_Y_RANGE: [number, number] = [0, 1];
-// Ratios above 2 are clamped for display; a bin cannot be meaningfully more
-// than twice the surrounding density without the baseline itself being wrong.
-export const HET_DENSITY_Y_RANGE: [number, number] = [0, 2];
+// log2 of observed over the chromosome's typical bin, matching the coverage
+// track's scale. Symmetric, so a fourfold drop and a fourfold excess are equally
+// visible, and bounded because heterozygote density varies by more than an order
+// of magnitude across a chromosome for reasons that are not copy number.
+export const HET_DENSITY_Y_RANGE: [number, number] = [-4, 4];
 export const DEFAULT_COV_Y_RANGE: [number, number] = [-3, 3];

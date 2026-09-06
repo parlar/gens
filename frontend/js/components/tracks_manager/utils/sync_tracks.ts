@@ -264,10 +264,12 @@ async function getSampleTracks(
     isHidden: false,
   };
 
-  // Heterozygote density: a count, not a fitted model. It is the only one of
-  // these tracks that can show a deletion or copy-neutral LOH, which remove
-  // heterozygosity instead of shifting the BAF band, so it is shown alongside
-  // coverage and BAF rather than left for the user to discover.
+  // Heterozygote density: a count, not a fitted model, and deliberately without
+  // a significance claim. It is the only one of these tracks that can show a
+  // deletion or a run of homozygosity, which remove heterozygosity instead of
+  // shifting the BAF band, so it is shown alongside coverage and BAF rather than
+  // left for the user to discover. It cannot tell those two apart; the coverage
+  // track beside it can.
   const hetDensity: DataTrackSettings = {
     trackId: `${sampleKey}_${TRACK_IDS.het_density}`,
     trackLabel: `${sampleDisplayLabel} het density`,
@@ -280,9 +282,9 @@ async function getSampleTracks(
     showLabelWhenCollapsed: true,
     yAxis: {
       range: HET_DENSITY_Y_RANGE,
-      label: "Het density",
+      label: "Het density log2",
       hideLabelOnCollapse: true,
-      highlightedYs: [1],
+      highlightedYs: [0],
     },
     isExpanded: true,
     isHidden: false,

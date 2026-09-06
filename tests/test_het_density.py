@@ -4,6 +4,7 @@ import pytest
 from gens.het_density import (
     DEFAULT_BIN_SIZE,
     bin_range,
+    chromosome_baseline,
     count_het_sites,
     leave_one_out_reference,
     panel_reference,
@@ -16,7 +17,9 @@ def write_baf(tmp_path, name, sites, chromosome="1"):
     """A bgzipped, tabix-indexed Gens BAF bed with one row per site."""
     raw = tmp_path / f"{name}.bed"
     with open(raw, "w") as handle:
-        for position, value in sites:
+        # tabix requires coordinate order; sorting here keeps each test free to
+        # list its sites in whatever order reads clearly.
+        for position, value in sorted(sites):
             handle.write(f"d_{chromosome}\t{position}\t{position + 1}\t{value}\n")
     path = str(tmp_path / f"{name}.bed.gz")
     pysam.tabix_compress(str(raw), path, force=True)
@@ -118,3 +121,36 @@ def test_leave_one_out_excludes_the_sample_being_judged():
 
 def test_default_bin_size_is_the_documented_twenty_kilobases():
     assert DEFAULT_BIN_SIZE == 20_000
+
+
+def test_chromosome_baseline_is_the_median_bin_including_empty_ones(tmp_path):
+    # Five bins over 5000 bp: 10, 10, 0, 10, 0 heterozygous sites.
+    sites = []
+    for start in (0, 1000, 3000):
+        sites += [(start + i * 10 + 1, 0.5) for i in range(10)]
+    tabix = write_baf(tmp_path, "baseline", sites)
+    # Median of [10, 10, 0, 10, 0] is 10.
+    assert chromosome_baseline(tabix, "1", 5000, bin_size=BIN) == 10.0
+
+
+def test_chromosome_baseline_counts_empty_bins_rather_than_skipping_them(tmp_path):
+    # One dense bin and four empty ones. Skipping empties would call the typical
+    # bin 20 and make every ordinary stretch look depleted; the median is 0.
+    sites = [(i * 10 + 1, 0.5) for i in range(20)]
+    tabix = write_baf(tmp_path, "sparse", sites)
+    assert chromosome_baseline(tabix, "1", 5000, bin_size=BIN) == 0.0
+
+
+def test_chromosome_baseline_ignores_homozygous_sites(tmp_path):
+    sites = [(i * 10 + 1, 0.5) for i in range(6)] + [
+        (i * 10 + 5, 1.0) for i in range(50)
+    ]
+    tabix = write_baf(tmp_path, "homs", sites)
+    # Only bin 0 has heterozygotes; median over five bins is still 0.
+    assert chromosome_baseline(tabix, "1", 5000, bin_size=BIN) == 0.0
+    assert count_het_sites(tabix, "1", 0, 0, bin_size=BIN) == [6]
+
+
+def test_chromosome_baseline_of_a_missing_contig_is_zero(tmp_path):
+    tabix = write_baf(tmp_path, "chr1only2", [(10, 0.5)])
+    assert chromosome_baseline(tabix, "22", 5000, bin_size=BIN) == 0.0

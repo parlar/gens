@@ -554,6 +554,26 @@ export class API {
     return this.overviewBafCache[sampleKey];
   }
 
+  getHetDensity(
+    id: SampleIdentifier,
+    chrom: string,
+    xRange: Rng,
+    signal?: AbortSignal,
+  ): Promise<ApiHetDensityTrack> {
+    return get(
+      new URL("samples/sample/het-density", this.apiURI).href,
+      {
+        sample_id: id.sampleId,
+        case_id: id.caseId,
+        genome_build: id.genomeBuild,
+        chromosome: chrom,
+        start: Math.max(1, Math.floor(xRange[0])),
+        end: Math.ceil(xRange[1]),
+      },
+      signal,
+    ) as Promise<ApiHetDensityTrack>;
+  }
+
   async getBafHistogramData(
     id: SampleIdentifier,
     region: Region,

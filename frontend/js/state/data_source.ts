@@ -4,7 +4,6 @@ import {
   VARIANT_COLORS,
   ZOOM_STEPS,
 } from "../constants";
-import { buildHetDensity, uninterpretedSpans } from "../util/het_density";
 import { prefixNts, transformMap } from "../util/utils";
 import { API } from "./api";
 
@@ -64,22 +63,30 @@ export function getRenderDataSource(
   };
 
   /**
-   * Heterozygote density for the current view, derived from the same BAF sites
-   * the BAF track draws. A deletion or copy-neutral LOH removes heterozygous
-   * sites rather than shifting the band, so the BAF track alone cannot show it.
+   * Heterozygote density: how many heterozygous sites each fixed genomic bin
+   * holds, against this sample's typical bin on the same chromosome.
    *
-   * Density needs one site per heterozygous position, so this requires the
-   * full-resolution ("d") zoom level. At coarser zooms the stored data is
-   * already aggregated and a count of points measures the binning, not the
-   * genome; the track reports no data rather than a misleading ratio.
+   * A heterozygous deletion and a run of homozygosity both remove heterozygosity
+   * rather than shifting the B-allele band, so neither is visible in the BAF
+   * track. Neither is distinguishable from the other here, nor from a coverage
+   * dropout or ordinary mapping difficulty, which is why this carries no
+   * significance and no call: read it beside the coverage track, where a
+   * deletion falls and a run of homozygosity does not.
+   *
+   * Plotted as log2 of the ratio, matching the coverage track's scale, because
+   * the raw ratio is bounded below by 0 and unbounded above and would clamp
+   * almost every ordinary bin against the top of a linear axis.
    */
   const getHetDensityData = async (
     id: SampleIdentifier,
     chrom: string,
   ): Promise<DotTrackData> => {
     const xRange = getXRange();
-    const zoom = calculateZoom(xRange);
-    if (zoom !== "d") {
+    const track = await api.getHetDensity(id, chrom, xRange);
+
+    if (track.baseline < track.minimum_baseline) {
+      // A chromosome whose typical bin holds a handful of sites cannot support
+      // a ratio at all. Saying so beats plotting one.
       return {
         dots: [],
         shaded: [
@@ -87,40 +94,28 @@ export function getRenderDataSource(
             start: xRange[0],
             end: xRange[1],
             color: STYLE.colors.lightGray,
-            label: "Zoom in for heterozygote density",
+            label: "Too few heterozygous sites on this chromosome to scale",
           },
         ],
       };
     }
 
-    const sites = await api.getBaf(id, chrom, zoom, xRange);
-    const density = buildHetDensity(sites, xRange);
-
-    const dots = density.bins
-      .filter((bin) => bin.ratio !== null)
-      .map((bin) => ({
-        x: (bin.start + bin.end) / 2,
-        y: Math.min(bin.ratio as number, HET_DENSITY_Y_RANGE[1]),
-        color:
-          (bin.depletionP ?? 1) < 1e-3
-            ? STYLE.colors.red
-            : STYLE.colors.darkGray,
-      }));
-
-    // Bins with no interpretable evidence are shaded rather than left blank, so
-    // that a sparse or unmappable region reads as "cannot tell" instead of as a
-    // normal region or a track that failed to load. Runs of adjacent bins are
-    // merged so the wash is one span rather than a row of stripes.
-    const label = density.noBaseline
-      ? "No usable heterozygous sites"
-      : "Too few heterozygous sites to judge";
-    const shaded: ShadedRange[] = uninterpretedSpans(density).map((span) => ({
-      ...span,
-      color: STYLE.colors.lightGray,
-      label,
+    const [low, high] = HET_DENSITY_Y_RANGE;
+    const dots = track.bins.map((bin) => ({
+      x: (bin.start + bin.end) / 2,
+      // A bin with no heterozygous sites has no logarithm; it is pinned to the
+      // bottom of the axis, which is where an unbounded drop belongs.
+      y:
+        bin.observed === 0
+          ? low
+          : Math.min(
+              high,
+              Math.max(low, Math.log2(bin.observed / track.baseline)),
+            ),
+      color: STYLE.colors.darkGray,
     }));
 
-    return { dots, shaded };
+    return { dots, shaded: [] };
   };
 
   const getTranscriptBands = async (chrom: string): Promise<RenderBand[]> => {

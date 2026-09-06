@@ -218,6 +218,21 @@ interface ApiCoverageDot {
   value: number;
 }
 
+interface ApiHetDensityBin {
+  start: number;
+  end: number;
+  observed: number;
+}
+
+interface ApiHetDensityTrack {
+  chromosome: string;
+  bin_size: number;
+  het_range: [number, number];
+  baseline: number;
+  minimum_baseline: number;
+  bins: ApiHetDensityBin[];
+}
+
 interface ApiCoverageBin {
   start: number;
   end: number;
