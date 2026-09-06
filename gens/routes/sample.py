@@ -2,12 +2,14 @@
 
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query
 
 from gens.crud import samples
+from gens.crud.het_density import get_het_density
 from gens.db.collections import SAMPLES_COLLECTION
 from gens.io import get_overview_from_tabix, get_scatter_data
 from gens.models.genomic import Chromosome, GenomeBuild, GenomicRegion
+from gens.models.het_density import HetDensityTrack
 from gens.models.sample import (
     GenomeCoverage,
     MultipleSamples,
@@ -43,6 +45,52 @@ async def get_sample_route(
         genome_build=genome_build,
     )
     return sample_info
+
+
+#: A wider request would bin the whole genome on every pan. The frontend only
+#: draws this track at full resolution anyway.
+MAX_HET_DENSITY_WINDOW = 20_000_000
+
+
+@router.get("/sample/het-density", tags=[ApiTags.SAMPLE])
+def get_sample_het_density(
+    sample_id: str,
+    case_id: str,
+    genome_build: GenomeBuild,
+    chromosome: Chromosome,
+    db: GensDb,
+    start: int = Query(default=1, ge=1),
+    end: int = Query(..., ge=1),
+    bin_size: int = Query(default=20_000, ge=1_000, le=1_000_000),
+) -> HetDensityTrack:
+    """Heterozygous sites per bin, scaled by the sample's own typical bin.
+
+    Descriptive only. The response carries no probability and no call: a bin
+    empty of heterozygous sites is produced by a heterozygous deletion, a run of
+    homozygosity, a coverage dropout and ordinary mapping difficulty alike.
+    """
+    if end < start:
+        raise HTTPException(status_code=416, detail="end precedes start")
+    if end - start > MAX_HET_DENSITY_WINDOW:
+        raise HTTPException(
+            status_code=416,
+            detail=f"region exceeds {MAX_HET_DENSITY_WINDOW} bp",
+        )
+    try:
+        return get_het_density(
+            db=db,
+            sample_id=sample_id,
+            case_id=case_id,
+            genome_build=genome_build,
+            chromosome=chromosome,
+            start=start,
+            end=end,
+            bin_size=bin_size,
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
+    except FileNotFoundError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
 
 
 @router.get(
