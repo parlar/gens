@@ -181,6 +181,31 @@ class GeneListRecord(RWModel):
     version: str
 
 
+class PanelGene(RWModel):
+    """One gene of a panel, placed on the genome."""
+
+    symbol: str
+    chromosome: Chromosome
+    start: PositiveInt
+    end: PositiveInt
+    #: True when the placement came from a MANE transcript rather than the
+    #: widest annotated one. A reader stepping through a panel should be able to
+    #: see which genes were placed on a weaker basis.
+    is_mane: bool
+
+
+class PanelGenes(RWModel):
+    """A panel resolved against a genome build, in genomic order."""
+
+    panel_id: str
+    version: str
+    genome_build: GenomeBuild
+    genes: list[PanelGene]
+    #: Panel symbols with no transcript in this build. Reported rather than
+    #: dropped: a gene missing from the walk is a gene nobody looked at.
+    missing: list[str]
+
+
 class SimplifiedVariantRecord(RWModel):
     """Simplified variant info for rendering variant track."""
 

@@ -81,3 +81,33 @@ describe("BAF histogram requests", () => {
     );
   });
 });
+
+describe("gene panel requests", () => {
+  const api = new API(38, "https://example.org/gens/api/");
+  const mockGet = get as jest.Mock;
+
+  beforeEach(() => mockGet.mockReset());
+
+  test("keeps the trailing slash on the gene list collection", async () => {
+    // The route is declared as "/gene_lists/". Without the slash the server
+    // answers 404, which this client turns into null, and the panel selector
+    // silently comes up empty.
+    mockGet.mockResolvedValue([]);
+    await api.getGeneLists();
+    expect(mockGet).toHaveBeenCalledWith(
+      "https://example.org/gens/api/gene_lists/",
+      {},
+    );
+  });
+
+  test("pins the panel version so the gene set cannot drift", async () => {
+    mockGet.mockResolvedValue({ genes: [], missing: [] });
+    const signal = new AbortController().signal;
+    await api.getPanelGenes("cardio panel", "2.0", signal);
+    expect(mockGet).toHaveBeenCalledWith(
+      "https://example.org/gens/api/gene_lists/cardio%20panel/genes",
+      { genome_build: 38, version: "2.0" },
+      signal,
+    );
+  });
+});

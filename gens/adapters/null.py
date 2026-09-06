@@ -37,5 +37,5 @@ class NullInterpretationAdapter(InterpretationAdapter):
     def get_gene_lists(self) -> list[GeneListRecord]:
         return []
 
-    def get_gene_list(self, gene_list_id: str) -> list[str]:
+    def get_gene_list(self, gene_list_id: str, version: str | None = None) -> list[str]:
         return []

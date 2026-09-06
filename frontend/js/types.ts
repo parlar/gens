@@ -37,6 +37,24 @@ interface ApiGeneList {
   version: string;
 }
 
+interface ApiPanelGene {
+  symbol: string;
+  chromosome: Chromosome;
+  start: number;
+  end: number;
+  is_mane: boolean;
+}
+
+interface ApiPanelGenes {
+  panel_id: string;
+  version: string;
+  genome_build: number;
+  genes: ApiPanelGene[];
+  // Panel symbols with no transcript in this build. Shown, not dropped: a gene
+  // missing from the walk is a gene nobody looked at.
+  missing: string[];
+}
+
 interface ApiSampleAnnotationTrack {
   // FIXME: What to do with this one
   _id: string;

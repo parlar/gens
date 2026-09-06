@@ -122,11 +122,13 @@ export class API {
     return annotSources;
   }
 
-  getGeneLists(): Promise<ApiGeneList[]> {
+  getGeneLists(): Promise<ApiGeneList[] | null> {
+    // The trailing slash matters: the route is declared as "/gene_lists/" and
+    // the bare path answers 404, which this client turns into null.
     const geneLists = get(
-      new URL("gene_lists", this.apiURI).href,
+      new URL("gene_lists/", this.apiURI).href,
       {},
-    ) as Promise<ApiGeneList[]>;
+    ) as Promise<ApiGeneList[] | null>;
     return geneLists;
   }
 
@@ -136,6 +138,20 @@ export class API {
       { chromosome, genome_build: this.genomeBuild },
     ) as Promise<string[]>;
     return geneSymbols;
+  }
+
+  getPanelGenes(
+    panelId: string,
+    version: string,
+    signal?: AbortSignal,
+  ): Promise<ApiPanelGenes | null> {
+    // The version is pinned so the gene set cannot change under a reader
+    // part-way through a panel as the panel is curated.
+    return get(
+      new URL(`gene_lists/${encodeURIComponent(panelId)}/genes`, this.apiURI).href,
+      { genome_build: this.genomeBuild, version },
+      signal,
+    ) as Promise<ApiPanelGenes | null>;
   }
 
   getSampleAnnotationSources(

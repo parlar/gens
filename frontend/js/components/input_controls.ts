@@ -96,6 +96,9 @@ template.innerHTML = String.raw`
     </div>
 
     <div id="input-controls-right">
+      <button title="Open gene panel" aria-label="Open gene panel" id="gene-panel-button" class="button">
+        <span class="fas ${ICONS.genes}" aria-hidden="true"></span>
+      </button>
       <button title="Open read connections" aria-label="Open read connections" id="read-connections-button" class="button">
         <span class="fas ${ICONS.connections}" aria-hidden="true"></span>
       </button>
@@ -161,6 +164,7 @@ export class InputControls extends HTMLElement {
     hasInfoWarning: boolean,
     onOpenBafHistogram: () => void,
     onOpenReadConnections: () => void,
+    onOpenGenePanel: () => void,
   ) {
     this.session = session;
     this.onOpenSettings = onOpenSettings;
@@ -179,6 +183,9 @@ export class InputControls extends HTMLElement {
     (
       this.querySelector("#read-connections-button") as HTMLButtonElement
     ).onclick = onOpenReadConnections;
+    (
+      this.querySelector("#gene-panel-button") as HTMLButtonElement
+    ).onclick = onOpenGenePanel;
 
     this.panLeftButton.onclick = () => {
       this.panLeft();

@@ -9,6 +9,7 @@ export function setupShortcuts(
   inputControls: InputControls,
   onChromClick: (chrom: string) => void,
   onChange: (settings: RenderSettings) => void,
+  onStepGene: (delta: number) => void,
 ) {
   // Rebuild the keyboard shortcuts
   document.addEventListener("keydown", (e) => {
@@ -73,6 +74,16 @@ export function setupShortcuts(
     if (e.key === "m") {
       if (isEditing) return;
       inputControls.toggleMarkerMode();
+    }
+    // Stepping a gene panel. Arrow keys already pan and zoom, so the walk gets
+    // its own pair; both are inert until a panel is loaded.
+    if (e.key === "n") {
+      if (isEditing) return;
+      onStepGene(1);
+    }
+    if (e.key === "p") {
+      if (isEditing) return;
+      onStepGene(-1);
     }
   });
 }

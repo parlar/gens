@@ -131,14 +131,23 @@ class ScoutMongoAdapter(InterpretationAdapter):
 
         return gene_lists
 
-    def get_gene_list(self, gene_list_id: str) -> list[str]:
-        # Fetch the latest version of the panel by sorting on version descending
-        cursor = (
-            self._db.get_collection("gene_panel")
-            .find({"panel_name": gene_list_id})
-            .sort("version", -1)
-            .limit(1)
-        )
+    def get_gene_list(self, gene_list_id: str, version: str | None = None) -> list[str]:
+        """Gene symbols for a panel, at a pinned version when one is given.
+
+        Panels are curated, so "the newest version" is a moving target. A reader
+        walking a panel needs the set to hold still, and a reader comparing with
+        Scout needs to know which set they are looking at; both need the version
+        to travel with the request. Without one this keeps the old behaviour.
+        """
+        query: dict[str, Any] = {"panel_name": gene_list_id}
+        if version is not None:
+            try:
+                query["version"] = float(version)
+            except ValueError:
+                LOG.warning("ignoring unparseable panel version %r", version)
+                del query["version"]
+        # Sorting descending still picks the newest when no version was pinned.
+        cursor = self._db.get_collection("gene_panel").find(query).sort("version", -1).limit(1)
         gene_list = next(cursor, None)
         if not gene_list:
             return []
