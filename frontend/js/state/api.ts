@@ -623,7 +623,11 @@ export class API {
         genome_build: id.genomeBuild,
         chromosome: region.chrom,
         zoom_level: "d",
-        start: region.start - 1,
+        // Sent as the inclusive interval the reader sees, the same as every
+        // other caller. This used to subtract one to compensate for the server
+        // reading start as a BED coordinate; that conversion now happens once,
+        // server-side, so doing it here as well would drop a base again.
+        start: region.start,
         end: region.end,
       },
       signal,

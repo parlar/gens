@@ -17,6 +17,9 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Return the first base of a requested coverage or BAF interval, which was dropped because the inclusive display interval was passed to Tabix as a BED coordinate; the conversion now happens once on the server, and the BAF histogram client no longer compensates for it separately
+- Restrict variant queries to the requested interval, in the Scout adapter the API actually uses as well as in the unused copy in `gens/crud/scout.py`; the overlap filter was commented out in both, so a bounded query returned every variant on the chromosome
+- Answer 404 rather than 500 when a sample is not in the database, for every API route rather than only the one that caught the exception itself
 - Stop writing a BAF of zero for positions where nothing was measured: a no-call or a position below the requested depth is now omitted rather than plotted at the same height as a position with no alt allele
 - Keep gVCF reference blocks that report `MIN_DP` instead of `DP`, which the depth filter previously read as depth zero
 - Reject an empty sample annotation replacement before deleting the existing records, so a file that parses to nothing no longer empties the track

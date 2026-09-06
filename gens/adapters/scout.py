@@ -7,6 +7,7 @@ from pymongo.database import Database
 
 from gens.adapters.base import InterpretationAdapter
 from gens.crud.scout import VariantNotFoundError, VariantValidationError
+from gens.crud.utils import query_genomic_region
 from gens.models.annotation import (
     GeneListRecord,
     SimplifiedVariantRecord,
@@ -42,12 +43,13 @@ class ScoutMongoAdapter(InterpretationAdapter):
                 }
             },
         }
+        # Restrict to variants overlapping the requested interval. This was
+        # commented out, so a bounded query returned every variant on the
+        # chromosome. This is the copy the API actually runs.
         if all(param is not None for param in [region.start, region.end]):
-            # FIXME: What is this?
-            # **query_genomic_regions(region.start, region.end, variant_category),  # type: ignore
-
             query = {
                 **query,
+                **query_genomic_region(region.start, region.end, variant_category),  # type: ignore
             }
         projection: dict[str, bool] = {}
         LOG.info("Query variant database: %s", query)

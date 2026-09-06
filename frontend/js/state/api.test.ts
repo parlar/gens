@@ -11,7 +11,12 @@ describe("BAF histogram requests", () => {
 
   beforeEach(() => mockGet.mockReset());
 
-  test("requests only resolution d and includes the leftmost BED site", async () => {
+  // The request carries the inclusive interval the reader sees, unchanged.
+  // It used to subtract one from the start to compensate for the server
+  // reading it as a BED coordinate; that conversion now happens once in
+  // gens/io.py, and the scatter client — which never compensated — agrees
+  // with this one as a result.
+  test("requests only resolution d, sending the interval as displayed", async () => {
     mockGet.mockResolvedValue({
       position: [99, 100, 150, 200, 201],
       value: [0, 0.3, 0.5, 0.7, 1],
@@ -33,7 +38,7 @@ describe("BAF histogram requests", () => {
         genome_build: 38,
         chromosome: "1",
         zoom_level: "d",
-        start: 99,
+        start: 100,
         end: 200,
       },
       signal,

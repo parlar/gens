@@ -104,9 +104,18 @@ def get_scatter_data(
     # The handle is closed here rather than left to the garbage collector: this
     # runs once per request in a process that stays up for weeks, and an
     # unclosed index holds an open file descriptor until it is collected.
+    # A GenomicRegion is an inclusive 1-based interval, the way a position is
+    # written in the viewer, while fetch takes BED's 0-based half-open one.
+    # parse_raw_tabix below stores position p as [p - 1, p), so passing start
+    # through unconverted asked for [start, end) and dropped the first base of
+    # every window. The conversion belongs here, once, rather than in each
+    # caller: the histogram client used to subtract the one itself and the
+    # scatter client did not, so the same interval meant two different things.
+    fetch_start = None if region.start is None else max(0, region.start - 1)
+
     with TabixFile(str(path)) as tabix_file:
         try:
-            records = tabix_file.fetch(record_name, region.start, region.end)
+            records = tabix_file.fetch(record_name, fetch_start, region.end)
         except ValueError as err:
             LOG.error(err)
             records = iter([])

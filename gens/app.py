@@ -114,6 +114,26 @@ def create_app() -> FastAPI:
 
     add_api_routers(fastapi_app, dependencies=[Depends(require_api_auth)])
 
+    @fastapi_app.exception_handler(SampleNotFoundError)
+    def sample_not_found_response(
+        _request: Request, error: SampleNotFoundError
+    ) -> JSONResponse:
+        """Answer 404 for a sample that is not in the database.
+
+        There is a Flask handler for this too, but it does not cover the API:
+        every route that did not catch the exception itself returned 500, which
+        tells a caller the server is broken rather than that they asked for a
+        sample that is not there. Registered here rather than in each route so
+        a new route cannot forget it.
+
+        The body names only the sample id the caller supplied, so nothing about
+        where the data lives on disk goes out with it.
+        """
+        return JSONResponse(
+            status_code=404,
+            content={"detail": f"No sample with id: {error.sample_id}"},
+        )
+
     @flask_app.before_request
     def check_user() -> Flask | None | Response:  # type: ignore
         """Check permission if page requires authentication."""

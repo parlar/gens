@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import ValidationError
 from pymongo.database import Database
 
+from gens.crud.utils import query_genomic_region
 from gens.models.annotation import SimplifiedVariantRecord, VariantRecord
 from gens.models.genomic import GenomicRegion, VariantCategory
 
@@ -52,12 +53,20 @@ def get_variants(
             }
         },
     }
-    # add start, end position to query
+    # Restrict to variants overlapping the requested interval. This was
+    # commented out, so a bounded query returned every variant on the
+    # chromosome; the route advertises an interval, and a caller that trusts it
+    # would draw variants from far outside the view.
+    #
+    # NOTE: this module's query functions are not the ones the API runs.
+    # ScoutMongoAdapter in gens/adapters/scout.py carries its own copy and is
+    # what routes/annotations.py reaches through AdapterDep; only the exception
+    # classes here are imported elsewhere. Both are fixed, but they remain
+    # duplicates and will drift again.
     if all(param is not None for param in [region.start, region.end]):
-        # FIXME: Is the query_genomic_region important? Why is it used?
         query = {
             **query,
-            # **query_genomic_region(region.start, region.end, variant_category),  # type: ignore
+            **query_genomic_region(region.start, region.end, variant_category),  # type: ignore
         }
     projection: dict[str, bool] = {}
     # query database
