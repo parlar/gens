@@ -460,7 +460,7 @@ export class SettingsMenu extends ShadowBaseElement {
     this.coverageYEndElem = this.root.querySelector("#coverage-y-end");
 
     this.currentProfile = this.root.querySelector("#current-profile");
-    this.currentProfile.innerHTML = this.getProfileSettings().profileKey;
+    this.currentProfile.textContent = this.getProfileSettings().profileKey;
 
     this.updateResetLayoutInfo();
 
@@ -707,7 +707,11 @@ export class SettingsMenu extends ShadowBaseElement {
       };
     });
 
-    this.onApplyDisplayAliases(mainSample.caseId, caseAlias || null, sampleAliases);
+    this.onApplyDisplayAliases(
+      mainSample.caseId,
+      caseAlias || null,
+      sampleAliases,
+    );
   }
 
   private updateResetLayoutInfo() {

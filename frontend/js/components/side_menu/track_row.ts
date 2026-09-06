@@ -75,7 +75,7 @@ export class TrackRow extends ShadowBaseElement {
     this.toggleHide = this.root.querySelector("#hide");
     this.toggleExpand = this.root.querySelector("#collapse");
 
-    this.label.innerHTML = this.track.trackLabel;
+    this.label.textContent = this.track.trackLabel;
     this.label.title = this.track.trackLabel;
 
     // This is needed to make sure the icon buttons are classes

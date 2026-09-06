@@ -17,6 +17,10 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Show imported annotation comments and track names as text rather than markup, so a URL-shaped string containing a tag can no longer introduce an element or an event handler, and only `http` and `https` links are made clickable
+- Coalesce repeated track renders again: the debounced fetch was rebuilt on every call, so each got its own timer and rapid panning made one request per frame
+- Discard a data track response as soon as the reader moves on, rather than only once the next fetch has started, so a response for the previous view can no longer be drawn against the new view's scale
+- Drop a failed request from the frontend caches instead of replaying it for the rest of the session, which made a region unrecoverable after one dropped connection
 - Return the first base of a requested coverage or BAF interval, which was dropped because the inclusive display interval was passed to Tabix as a BED coordinate; the conversion now happens once on the server, and the BAF histogram client no longer compensates for it separately
 - Restrict variant queries to the requested interval, in the Scout adapter the API actually uses as well as in the unused copy in `gens/crud/scout.py`; the overlap filter was commented out in both, so a bounded query returned every variant on the chromosome
 - Answer 404 rather than 500 when a sample is not in the database, for every API route rather than only the one that caught the exception itself

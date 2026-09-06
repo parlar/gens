@@ -22,6 +22,55 @@ const DEFAULT_VARIANT_SUB_CATEGORIES = [
 ];
 const ZOOM_WINDOW_CACHE_MULTIPLIER = 5;
 
+/**
+ * Remember an in-flight request under `key`, but forget it if it fails.
+ *
+ * Caching the promise rather than its result is what lets several callers
+ * share one request, and is worth keeping. Keeping a *rejected* promise is
+ * not: one dropped connection would then be replayed as the same failure for
+ * the rest of the session, and panning back to that region could never
+ * recover, because no second request is ever made.
+ *
+ * The identity check before deleting matters — by the time a failure lands,
+ * the slot may already hold a newer request, and that one should stay.
+ */
+export function cachedRequest<T>(
+  store: Record<string, Promise<T>>,
+  key: string,
+  start: () => Promise<T>,
+): Promise<T> {
+  const existing = store[key];
+  if (existing !== undefined) {
+    return existing;
+  }
+  const pending = start();
+  store[key] = pending;
+  pending.catch(() => {
+    if (store[key] === pending) {
+      delete store[key];
+    }
+  });
+  return pending;
+}
+
+/** The same, for the caches that remember which window they cover. */
+export function cachedWindow<T>(
+  store: Record<string, { range: Rng; promise: Promise<T> }>,
+  key: string,
+  range: Rng,
+  start: () => Promise<T>,
+): Promise<T> {
+  const pending = start();
+  const entry = { range, promise: pending };
+  store[key] = entry;
+  pending.catch(() => {
+    if (store[key] === entry) {
+      delete store[key];
+    }
+  });
+  return pending;
+}
+
 export class API {
   genomeBuild: number;
   apiURI: string;
@@ -184,14 +233,16 @@ export class API {
       this.sampleAnnotsCache[trackId] = {};
     }
 
-    if (this.sampleAnnotsCache[trackId][chromosome] === undefined) {
-      const annotations = get(
-        new URL(`sample-tracks/annotations/track/${trackId}`, this.apiURI).href,
-        { chromosome },
-      ) as Promise<ApiSimplifiedAnnotation[]>;
-      this.sampleAnnotsCache[trackId][chromosome] = annotations;
-    }
-    return this.sampleAnnotsCache[trackId][chromosome];
+    return cachedRequest(
+      this.sampleAnnotsCache[trackId],
+      chromosome,
+      () =>
+        get(
+          new URL(`sample-tracks/annotations/track/${trackId}`, this.apiURI)
+            .href,
+          { chromosome },
+        ) as Promise<ApiSimplifiedAnnotation[]>,
+    );
   }
 
   getSampleAnnotationDetails(id: string): Promise<ApiSampleAnnotationDetails> {
@@ -221,16 +272,16 @@ export class API {
     const start = Math.max(1, Math.floor(xRange[0] / 1e6) * 1e6);
     const end = Math.ceil(xRange[1] / 1e6) * 1e6;
     const key = `${trackId}:${chromosome}:${start}-${end}`;
-    if (this.annotsCache[key] === undefined) {
-      const annotations = get(
-        new URL(`tracks/annotations/track/${trackId}`, this.apiURI).href,
-        { chromosome, start, end },
-      ) as Promise<ApiSimplifiedAnnotation[]>;
-
-      this.annotsCache[key] = annotations;
-    }
-
-    return this.annotsCache[key];
+    return cachedRequest(
+      this.annotsCache,
+      key,
+      () =>
+        get(new URL(`tracks/annotations/track/${trackId}`, this.apiURI).href, {
+          chromosome,
+          start,
+          end,
+        }) as Promise<ApiSimplifiedAnnotation[]>,
+    );
   }
 
   /**
@@ -259,29 +310,25 @@ export class API {
     }
 
     if (CACHED_ZOOM_LEVELS.includes(zoom)) {
-      const chromIsCached =
-        this.covSampleChrZoomCache[sampleKey][chrom] !== undefined;
-
-      if (!chromIsCached) {
+      if (this.covSampleChrZoomCache[sampleKey][chrom] === undefined) {
         this.covSampleChrZoomCache[sampleKey][chrom] = {};
       }
 
-      const zoomIsCached =
-        this.covSampleChrZoomCache[sampleKey][chrom][zoom] !== undefined;
-
-      if (!zoomIsCached) {
-        this.covSampleChrZoomCache[sampleKey][chrom][zoom] = getCovData(
-          this.apiURI,
-          endpoint,
-          id.sampleId,
-          id.caseId,
-          id.genomeBuild,
-          chrom,
-          zoom,
-          [1, this.getChromSizes()[chrom]],
-        );
-      }
-      return this.covSampleChrZoomCache[sampleKey][chrom][zoom];
+      return cachedRequest(
+        this.covSampleChrZoomCache[sampleKey][chrom],
+        zoom,
+        () =>
+          getCovData(
+            this.apiURI,
+            endpoint,
+            id.sampleId,
+            id.caseId,
+            id.genomeBuild,
+            chrom,
+            zoom,
+            [1, this.getChromSizes()[chrom]],
+          ),
+      );
     } else {
       // Zoom D level
       // FIXME: This should be generalized to be configurable
@@ -306,23 +353,22 @@ export class API {
         this.getChromSizes()[chrom],
       );
 
-      const promise = getCovData(
-        this.apiURI,
-        endpoint,
-        id.sampleId,
-        id.caseId,
-        id.genomeBuild,
+      return cachedWindow(
+        this.covSampleDWindowCache[sampleKey],
         chrom,
-        zoom,
         extended,
-      );
-
-      this.covSampleDWindowCache[sampleKey][chrom] = {
-        range: extended,
-        promise,
-      };
-
-      return promise.then((data) => filterRange(data, xRange));
+        () =>
+          getCovData(
+            this.apiURI,
+            endpoint,
+            id.sampleId,
+            id.caseId,
+            id.genomeBuild,
+            chrom,
+            zoom,
+            extended,
+          ),
+      ).then((data) => filterRange(data, xRange));
     }
   }
 
@@ -348,28 +394,25 @@ export class API {
     }
 
     if (CACHED_ZOOM_LEVELS.includes(zoom)) {
-      const chrIsCached =
-        this.bafSampleZoomChrCache[sampleKey][chrom] !== undefined;
-      if (!chrIsCached) {
+      if (this.bafSampleZoomChrCache[sampleKey][chrom] === undefined) {
         this.bafSampleZoomChrCache[sampleKey][chrom] = {};
       }
 
-      const zoomIsCached =
-        this.bafSampleZoomChrCache[sampleKey][chrom][zoom] !== undefined;
-
-      if (!zoomIsCached) {
-        this.bafSampleZoomChrCache[sampleKey][chrom][zoom] = getCovData(
-          this.apiURI,
-          endpoint,
-          id.sampleId,
-          id.caseId,
-          id.genomeBuild,
-          chrom,
-          zoom,
-          [1, this.getChromSizes()[chrom]],
-        );
-      }
-      return this.bafSampleZoomChrCache[sampleKey][chrom][zoom];
+      return cachedRequest(
+        this.bafSampleZoomChrCache[sampleKey][chrom],
+        zoom,
+        () =>
+          getCovData(
+            this.apiURI,
+            endpoint,
+            id.sampleId,
+            id.caseId,
+            id.genomeBuild,
+            chrom,
+            zoom,
+            [1, this.getChromSizes()[chrom]],
+          ),
+      );
     } else {
       if (this.bafSampleDWindowCache[sampleKey] == null) {
         this.bafSampleDWindowCache[sampleKey] = {};
@@ -391,22 +434,22 @@ export class API {
         this.getChromSizes()[chrom],
       );
 
-      const promise = getCovData(
-        this.apiURI,
-        endpoint,
-        id.sampleId,
-        id.caseId,
-        id.genomeBuild,
+      return cachedWindow(
+        this.bafSampleDWindowCache[sampleKey],
         chrom,
-        zoom,
         extended,
-      );
-
-      this.bafSampleDWindowCache[sampleKey][chrom] = {
-        range: extended,
-        promise,
-      };
-      return promise.then((data) => filterRange(data, xRange));
+        () =>
+          getCovData(
+            this.apiURI,
+            endpoint,
+            id.sampleId,
+            id.caseId,
+            id.genomeBuild,
+            chrom,
+            zoom,
+            extended,
+          ),
+      ).then((data) => filterRange(data, xRange));
     }
   }
 
@@ -430,11 +473,7 @@ export class API {
   ): Promise<ApiSimplifiedTranscript[]> {
     const cacheKey = `${this.genomeBuild}|${chrom}|${onlyCanonical ? 1 : 0}`;
 
-    if (this.transcriptCache[cacheKey] !== undefined) {
-      return this.transcriptCache[cacheKey];
-    }
-
-    const promise = (async () => {
+    return cachedRequest(this.transcriptCache, cacheKey, async () => {
       const serverTs = await this.getTranscriptUpdateTimestamp();
       const cached = await idbGet<IDBTranscripts>(
         IDB_CACHE.dbName,
@@ -467,10 +506,7 @@ export class API {
       });
 
       return transcripts;
-    })();
-
-    this.transcriptCache[cacheKey] = promise;
-    return promise;
+    });
   }
 
   private cachedThreshold: number;
@@ -499,44 +535,38 @@ export class API {
       this.variantsSampleChromCache[sampleKey] = {};
     }
 
-    const isCached =
-      this.variantsSampleChromCache[sampleKey][categoryChromCacheKey] !==
-      undefined;
-    if (!isCached) {
-      // Note: The genome build is ignored when running this
-      // with a Scout backend
-      const query = {
-        sample_id: sample.sampleId,
-        case_id: sample.caseId,
-        genome_build: sample.genomeBuild,
-        chromosome: chrom,
-        category: selectedCategory,
-        start: 1,
-        rank_score_threshold,
-        sub_categories: DEFAULT_VARIANT_SUB_CATEGORIES,
-      };
-      const url = new URL("tracks/variants", this.apiURI).href;
-      const variants = get(url, query) as Promise<ApiSimplifiedVariant[]>;
-      this.variantsSampleChromCache[sampleKey][categoryChromCacheKey] =
-        variants;
-    }
-    return this.variantsSampleChromCache[sampleKey][categoryChromCacheKey];
+    return cachedRequest(
+      this.variantsSampleChromCache[sampleKey],
+      categoryChromCacheKey,
+      () => {
+        // Note: The genome build is ignored when running this
+        // with a Scout backend
+        const query = {
+          sample_id: sample.sampleId,
+          case_id: sample.caseId,
+          genome_build: sample.genomeBuild,
+          chromosome: chrom,
+          category: selectedCategory,
+          start: 1,
+          rank_score_threshold,
+          sub_categories: DEFAULT_VARIANT_SUB_CATEGORIES,
+        };
+        const url = new URL("tracks/variants", this.apiURI).href;
+        return get(url, query) as Promise<ApiSimplifiedVariant[]>;
+      },
+    );
   }
 
   private chromCache: Record<string, Promise<ChromosomeInfo>> = {};
   getChromData(chrom: string): Promise<ChromosomeInfo> {
-    const isCached = this.chromCache[chrom] !== undefined;
-    if (!isCached) {
-      const chromosomeInfo = get(
-        new URL(`tracks/chromosomes/${chrom}`, this.apiURI).href,
-        {
+    return cachedRequest(
+      this.chromCache,
+      chrom,
+      () =>
+        get(new URL(`tracks/chromosomes/${chrom}`, this.apiURI).href, {
           genome_build: this.genomeBuild,
-        },
-      ) as Promise<ChromosomeInfo>;
-
-      this.chromCache[chrom] = chromosomeInfo;
-    }
-    return this.chromCache[chrom];
+        }) as Promise<ChromosomeInfo>,
+    );
   }
 
   private overviewSampleCovCache: Record<
@@ -548,17 +578,15 @@ export class API {
   ): Promise<Record<string, ApiCoverageDot[]>> {
     const sampleKey = getSampleKey(id);
 
-    if (this.overviewSampleCovCache[sampleKey] == null) {
-      this.overviewSampleCovCache[sampleKey] = getOverviewData(
+    return cachedRequest(this.overviewSampleCovCache, sampleKey, () =>
+      getOverviewData(
         id.sampleId,
         id.caseId,
         id.genomeBuild,
         "cov",
         this.apiURI,
-      );
-    }
-
-    return this.overviewSampleCovCache[sampleKey];
+      ),
+    );
   }
 
   private overviewBafCache: Record<
@@ -570,16 +598,15 @@ export class API {
   ): Promise<Record<string, ApiCoverageDot[]>> {
     const sampleKey = getSampleKey(id);
 
-    if (this.overviewBafCache[sampleKey] == null) {
-      this.overviewBafCache[sampleKey] = getOverviewData(
+    return cachedRequest(this.overviewBafCache, sampleKey, () =>
+      getOverviewData(
         id.sampleId,
         id.caseId,
         id.genomeBuild,
         "baf",
         this.apiURI,
-      );
-    }
-    return this.overviewBafCache[sampleKey];
+      ),
+    );
   }
 
   getHetDensity(

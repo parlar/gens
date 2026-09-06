@@ -297,7 +297,7 @@ export function populateSelect(
   const getOption = (id: string, label: string) => {
     const opt = document.createElement("option") as HTMLOptionElement;
     opt.value = id;
-    opt.innerHTML = label;
+    opt.textContent = label;
     return opt;
   };
 

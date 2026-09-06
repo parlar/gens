@@ -61,7 +61,7 @@ export class HighlightRow extends ShadowBaseElement {
       end: range[1],
     };
 
-    this.labelElem.innerHTML = `${this.highlight.chromosome}:${start}-${end}`;
+    this.labelElem.textContent = `${this.highlight.chromosome}:${start}-${end}`;
     this.addElementListener(this.gotoElem, "click", () => {
       this.onGoToHighlight(region);
     });

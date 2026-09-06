@@ -199,26 +199,34 @@ export abstract class DataTrack extends CanvasTrack {
   }
 
   disconnectedCallback(): void {
+    // A pending fetch would otherwise fire against a track that is no longer
+    // in the document.
+    this.fetchData?.cancel();
     super.disconnectedCallback();
   }
 
-  async render(renderSettings: RenderSettings) {
-    const isHidden = this.updateHidden();
-    if (isHidden) {
-      return;
-    }
+  private fetchData?: ReturnType<typeof debounce>;
 
-    // The intent with the debounce keeping track of the rendering number (_renderSeq)
-    // is to prevent repeated API requests when rapidly zooming/panning
-    // Only the last request is of interest
-    const fetchData = debounce(
+  /**
+   * Ask for this track's data, at most once per debounce interval.
+   *
+   * The debouncer is built once per track and kept. It used to be built inside
+   * render(), which meant a new timer per call and so nothing was ever
+   * coalesced: rapid zooming or panning fired one request per frame, the
+   * opposite of what the debounce was there for.
+   */
+  private scheduleFetch(): void {
+    this.fetchData ??= debounce(
       async () => {
-        this.renderSeq = this.renderSeq + 1;
         const mySeq = this.renderSeq;
         this.renderLoading();
         const data = await this.getRenderData();
         // A stale response must not overwrite the cached data, or a later
-        // redraw would show the previous view's data.
+        // redraw would show the previous view's data. The sequence advances
+        // in render(), when the view changes, not here: advancing it at the
+        // start of the fetch left a gap in which a response for the previous
+        // view was still considered current, and was then drawn against the
+        // new view's coordinate scale.
         if (mySeq !== this.renderSeq) {
           return;
         }
@@ -228,6 +236,14 @@ export abstract class DataTrack extends CanvasTrack {
       DEBOUNCE_DELAY,
       { leading: false, trailing: true },
     );
+    this.fetchData();
+  }
+
+  async render(renderSettings: RenderSettings) {
+    const isHidden = this.updateHidden();
+    if (isHidden) {
+      return;
+    }
 
     // this.renderData is null here for components not requiring
     // accessing any data through API (i.e. position track)
@@ -235,10 +251,12 @@ export abstract class DataTrack extends CanvasTrack {
       (renderSettings.reloadData || this.renderData == null) &&
       this.getRenderData != null
     ) {
+      // Anything already in flight is for a view that is no longer current.
+      this.renderSeq = this.renderSeq + 1;
       if (!renderSettings.positionOnly) {
         this.renderLoading();
       }
-      fetchData();
+      this.scheduleFetch();
     } else {
       this.draw(this.renderData);
     }

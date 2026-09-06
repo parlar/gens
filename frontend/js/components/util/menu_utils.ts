@@ -3,12 +3,40 @@ import { InfoField } from "./menu_content_utils";
 
 const style = STYLE.menu;
 
-export function getAHref(label: string, href: string): HTMLAnchorElement {
+/**
+ * Whether a link is safe to put in the document.
+ *
+ * Only http and https. A `javascript:` or `data:` href runs when clicked, and
+ * these links are built out of imported annotation text, which is not ours.
+ */
+export function isSafeHref(href: string): boolean {
+  try {
+    // Parsed without a base on purpose. With one, any string at all resolves
+    // to a link to Gens itself, so a label that is not a URL would still
+    // become clickable.
+    const { protocol } = new URL(href);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function getAHref(
+  label: string,
+  href: string,
+): HTMLAnchorElement | Text {
+  // textContent, not innerHTML: the label comes from annotation comments and
+  // track metadata, which are loaded from files Gens did not write. As markup
+  // a URL-shaped string containing a tag became one, event handler and all.
+  if (!isSafeHref(href)) {
+    // Still show what it said, just not as something clickable.
+    return document.createTextNode(label);
+  }
   const a = document.createElement("a");
-  a.innerHTML = label;
+  a.textContent = label;
   a.href = href;
   a.target = "_blank";
-  a.rel = "noopener";
+  a.rel = "noopener noreferrer";
   return a;
 }
 
@@ -18,7 +46,7 @@ export function getSimpleButton(
 ): HTMLDivElement {
   const button = document.createElement("div") as HTMLDivElement;
 
-  button.innerHTML = text;
+  button.textContent = text;
   button.style.cursor = "pointer";
   button.style.border = "1px solid #ccc";
   button.onclick = onClick;
@@ -153,7 +181,7 @@ export function getContainer(direction: "row" | "column", text?: string) {
 export function getDiv(text?: string) {
   const div = document.createElement("div");
   if (text != null) {
-    div.innerHTML = text;
+    div.textContent = text;
   }
   return div;
 }
@@ -167,7 +195,9 @@ export function makeRefDiv(
 
   row.appendChild(getDiv(name));
   if (url != null) {
-    row.appendChild(getDiv(",&nbsp;"));
+    // A literal non-breaking space, not the entity: getDiv sets textContent,
+    // so "&nbsp;" would now be shown as those six characters.
+    row.appendChild(getDiv(", "));
     row.appendChild(getAHref("URL", url));
   }
   if (pmid != null) {
