@@ -80,13 +80,14 @@ def collect_sites(sample: str, chrom: str, start: int, end: int) -> Sites:
     """
     seq, case = CASE[sample]
     sites = Sites()
+    # These SNV VCFs are keyed by sequencing ID, not by the NA pedigree ID.
     with pysam.VariantFile(ROOT.format(seq=seq, case=case)) as handle:
         for record in handle.fetch(chrom, start - 1, end):
             if not record.alts or len(record.alts) != 1:
                 continue
             if record.ref not in BASES or record.alts[0] not in BASES:
                 continue
-            call = record.samples[sample]
+            call = record.samples[seq]
             if call.get("GT") not in ((0, 1), (1, 0)):
                 continue
             quality = call.get("GQ")
