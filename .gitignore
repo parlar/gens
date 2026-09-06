@@ -52,3 +52,6 @@ gens/static/css/*
 *.map
 frontend/**/*.js
 
+
+# Outside-model review packages (never committed)
+.superpowers/
