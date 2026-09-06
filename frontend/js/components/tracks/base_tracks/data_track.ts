@@ -32,13 +32,13 @@ export abstract class DataTrack extends CanvasTrack {
   // Callback to allow multi-layered settings object
   protected getSettings: () => DataTrackSettings;
   // protected updateSettings: (settings: DataTrackSettings) => void;
-  protected renderData: BandTrackData | DotTrackData | null;
+  protected renderData: TrackData | null;
 
   private colorBands: RenderBand[] = [];
   private labelBox: HoverBox | null;
   private renderSeq = 0;
 
-  protected getRenderData: (() => Promise<BandTrackData | DotTrackData>) | null;
+  protected getRenderData: (() => Promise<TrackData>) | null;
   protected getXRange: () => Rng;
   protected getXScale: () => Scale;
   protected getYRange: () => Rng;
@@ -244,7 +244,7 @@ export abstract class DataTrack extends CanvasTrack {
     }
   }
 
-  abstract draw(renderData: DotTrackData | BandTrackData): void;
+  abstract draw(renderData: TrackData): void;
 
   protected drawStart() {
     const dimensions = this.dimensions;

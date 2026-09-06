@@ -1,3 +1,5 @@
+import { COLORS } from "../constants";
+
 export interface ReadEndpoint {
   chromosome: string;
   start: number;
@@ -84,3 +86,16 @@ export function endpointRegion(
     end: Math.min(size, center + 10000),
   };
 }
+
+/**
+ * Colour per evidence kind, shared by the side panel and the track.
+ *
+ * One definition rather than two, so a connection cannot be teal in the panel
+ * and blue in the track that sits under it.
+ */
+export const CONNECTION_COLORS: Record<ReadConnection["kind"], string> = {
+  split: COLORS.teal,
+  pair: COLORS.blue,
+  call: "#a12622",
+  unknown: COLORS.darkGray,
+};

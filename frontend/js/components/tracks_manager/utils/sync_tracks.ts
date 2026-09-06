@@ -47,6 +47,7 @@ export async function syncDataTrackSettings(
     (sample: Sample) => session.getDisplaySampleLabel(sample),
     (id: SampleIdentifier) => dataSources.getSampleAnnotSources(id),
     () => session.profile.getCoverageRange(),
+    (id: SampleIdentifier) => dataSources.hasReadConnections(id),
   );
   const removedSampleTrackIds = [];
   for (const combinedSampleId of removedSamples) {
@@ -121,6 +122,7 @@ async function sampleDiff(
     id: SampleIdentifier,
   ) => Promise<{ id: string; name: string }[]>,
   getCoverageRange: () => Rng,
+  hasReadConnections: (id: SampleIdentifier) => Promise<boolean>,
 ): Promise<{
   removedIds: Set<string>;
   sampleSettings: DataTrackSettings[];
@@ -141,6 +143,7 @@ async function sampleDiff(
     getSampleDisplayLabel,
     getCoverageRange,
     getSampleAnnotSources,
+    hasReadConnections,
   );
 
   return {
@@ -197,6 +200,7 @@ export async function getSampleTrackSettings(
   getSampleAnnotSources: (
     id: SampleIdentifier,
   ) => Promise<{ id: string; name: string }[]>,
+  hasReadConnections: (id: SampleIdentifier) => Promise<boolean>,
 ): Promise<DataTrackSettings[]> {
   const sampleSettings = [];
   for (const combinedId of combinedSampleIds) {
@@ -208,6 +212,7 @@ export async function getSampleTrackSettings(
       getSampleDisplayLabel,
       getCoverageRange,
       getSampleAnnotSources,
+      hasReadConnections,
     );
     sampleSettings.push(...sampleTracks);
   }
@@ -221,6 +226,7 @@ async function getSampleTracks(
   getSampleAnnotSources: (
     id: SampleIdentifier,
   ) => Promise<{ id: string; name: string }[]>,
+  hasReadConnections: (id: SampleIdentifier) => Promise<boolean>,
 ): Promise<DataTrackSettings[]> {
   const sampleDisplayLabel = getSampleDisplayLabel(sampleIdentifier);
   const sampleKey = getSampleKey(sampleIdentifier);
@@ -290,6 +296,26 @@ async function getSampleTracks(
     isHidden: false,
   };
 
+  // Read connections, on the same x scale as coverage and BAF above it. The
+  // side panel lists the same connections but on a scale of its own, which is
+  // what makes a breakpoint hard to place against the dip that produced it.
+  const connections: DataTrackSettings = {
+    trackId: `${sampleKey}_${TRACK_IDS.connections}`,
+    trackLabel: `${sampleDisplayLabel} connections`,
+    trackType: "connections",
+    sample: sampleIdentifier,
+    height: {
+      collapsedHeight: USED_TRACK_HEIGHTS.trackView.collapsedDot,
+      expandedHeight: USED_TRACK_HEIGHTS.trackView.expandedDot,
+    },
+    showLabelWhenCollapsed: true,
+    yAxis: null,
+    // Arcs need vertical room to separate from one another; collapsed they
+    // stack into a single smear and stop being readable at all.
+    isExpanded: true,
+    isHidden: false,
+  };
+
   const variants: DataTrackSettings = {
     trackId: `${sampleKey}_${TRACK_IDS.variants}`,
     trackLabel: `${sampleDisplayLabel} Variants`,
@@ -323,5 +349,16 @@ async function getSampleTracks(
     sampleAnnots.push(sampleAnnot);
   }
 
-  return [cov, baf, hetDensity, variants, ...sampleAnnots];
+  // A sample with no BEDPE loaded gets no lane at all, rather than one that is
+  // permanently empty and indistinguishable from a broken one.
+  const showConnections = await hasReadConnections(sampleIdentifier);
+
+  return [
+    cov,
+    baf,
+    hetDensity,
+    ...(showConnections ? [connections] : []),
+    variants,
+    ...sampleAnnots,
+  ];
 }

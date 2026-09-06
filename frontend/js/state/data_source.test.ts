@@ -1,4 +1,5 @@
 import { HET_DENSITY_MAX_WINDOW } from "../constants";
+import { EVIDENCE_WINDOW } from "../util/read_connections";
 import { API } from "./api";
 import { getRenderDataSource } from "./data_source";
 
@@ -8,7 +9,7 @@ describe("heterozygote density", () => {
   const api = { getHetDensity } as unknown as API;
 
   const sourceOver = (span: number) => {
-    let xRange: Rng = [1, 1 + span];
+    const xRange: Rng = [1, 1 + span];
     return getRenderDataSource(
       api,
       () => "1",
@@ -58,5 +59,68 @@ describe("heterozygote density", () => {
 
     expect(data.dots).toEqual([]);
     expect(data.shaded[0].label).toMatch(/Too few heterozygous sites/);
+  });
+});
+
+describe("read connections", () => {
+  const sample = { sampleId: "NA12879", caseId: "pedigree", genomeBuild: 38 };
+  const getReadEvidence = jest.fn();
+  const api = { getReadEvidence } as unknown as API;
+
+  const sourceOver = (span: number) => {
+    const xRange: Rng = [1, 1 + span];
+    return getRenderDataSource(
+      api,
+      () => "1",
+      () => xRange,
+      () => null,
+    );
+  };
+
+  beforeEach(() => getReadEvidence.mockReset());
+
+  test("does not ask for a window the endpoint refuses", async () => {
+    const source = sourceOver(EVIDENCE_WINDOW + 1);
+    const data = await source.getReadConnections(sample, "1", [
+      1,
+      2 + EVIDENCE_WINDOW,
+    ]);
+
+    expect(getReadEvidence).not.toHaveBeenCalled();
+    expect(data.connections).toEqual([]);
+    expect(data.unavailable).toMatch(/Zoom in/);
+  });
+
+  test("asks for a window at the limit", async () => {
+    getReadEvidence.mockResolvedValue({
+      connections: [],
+      truncated: false,
+    });
+    const source = sourceOver(EVIDENCE_WINDOW);
+    const data = await source.getReadConnections(sample, "1", [
+      1,
+      1 + EVIDENCE_WINDOW,
+    ]);
+
+    expect(getReadEvidence).toHaveBeenCalledTimes(1);
+    expect(data.unavailable).toBeNull();
+  });
+
+  test("tells an unloaded sample apart from an empty window", async () => {
+    getReadEvidence.mockResolvedValue(null);
+    const source = sourceOver(1000);
+    const data = await source.getReadConnections(sample, "1", [1, 1001]);
+
+    expect(data.unavailable).toMatch(/No read connections loaded/);
+  });
+
+  test("reports whether a sample has any evidence at all", async () => {
+    const source = sourceOver(1000);
+
+    getReadEvidence.mockResolvedValue(null);
+    expect(await source.hasReadConnections(sample)).toBe(false);
+
+    getReadEvidence.mockResolvedValue({ connections: [], truncated: false });
+    expect(await source.hasReadConnections(sample)).toBe(true);
   });
 });

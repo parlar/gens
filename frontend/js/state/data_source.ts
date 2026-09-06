@@ -5,6 +5,8 @@ import {
   VARIANT_COLORS,
   ZOOM_STEPS,
 } from "../constants";
+import { toTrackData } from "../util/connection_arcs";
+import { EVIDENCE_WINDOW } from "../util/read_connections";
 import { prefixNts, transformMap } from "../util/utils";
 import { API } from "./api";
 
@@ -135,6 +137,45 @@ export function getRenderDataSource(
     return { dots, shaded: [] };
   };
 
+  const getReadConnections = async (
+    id: SampleIdentifier,
+    chrom: string,
+    xRange: Rng,
+  ): Promise<ConnectionsTrackData> => {
+    // The endpoint refuses a wider window, so the guard belongs here rather
+    // than in an error path: a whole chromosome is wider than this, and that is
+    // the view a reader lands on.
+    if (xRange[1] - xRange[0] > EVIDENCE_WINDOW) {
+      return toTrackData(
+        null,
+        `Zoom in below ${EVIDENCE_WINDOW / 1_000_000} Mb to see read connections`,
+      );
+    }
+
+    const evidence = await api.getReadEvidence(
+      id,
+      { chrom: chrom as Chromosome, start: xRange[0], end: xRange[1] },
+      { kind: "all", minimum_mapq: 0, minimum_fragments: 0 },
+    );
+    return toTrackData(evidence, null);
+  };
+
+  /**
+   * Whether this sample has connections loaded at all.
+   *
+   * Asked once when tracks are built, with the narrowest window the endpoint
+   * accepts, so a sample without a BEDPE gets no lane rather than a permanently
+   * empty one.
+   */
+  const hasReadConnections = async (id: SampleIdentifier): Promise<boolean> => {
+    const evidence = await api.getReadEvidence(
+      id,
+      { chrom: "1" as Chromosome, start: 1, end: 2 },
+      { kind: "all", minimum_mapq: 0, minimum_fragments: 0 },
+    );
+    return evidence !== null;
+  };
+
   const getTranscriptBands = async (chrom: string): Promise<RenderBand[]> => {
     const onlyCanonical = true;
     const transcriptsRaw = await api.getTranscripts(chrom, onlyCanonical);
@@ -220,6 +261,8 @@ export function getRenderDataSource(
     getCovData,
     getBafData,
     getHetDensityData,
+    getReadConnections,
+    hasReadConnections,
     getTranscriptBands,
     getTranscriptDetails: (id: string) => api.getTranscriptDetails(id),
     getGeneListBands,

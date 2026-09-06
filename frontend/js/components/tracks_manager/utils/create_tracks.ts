@@ -2,6 +2,7 @@ import { STYLE } from "../../../constants";
 import { GensSession } from "../../../state/gens_session";
 import { BandTrack } from "../../tracks/band_track";
 import { DataTrack } from "../../tracks/base_tracks/data_track";
+import { ConnectionsTrack } from "../../tracks/connections_track";
 import { DotTrack } from "../../tracks/dot_track";
 import {
   getAnnotationContextMenuContent,
@@ -127,6 +128,22 @@ export function getTrack(
       getXRange,
       // Depleted bins are coloured by the data source and must not be repainted.
       true,
+    );
+  } else if (setting.trackType == "connections") {
+    const getConnections = () =>
+      dataSource.getReadConnections(
+        setting.sample,
+        getChromosome(),
+        getXRange(),
+      );
+    track = getConnectionsTrack(
+      session,
+      () => setting,
+      getConnections,
+      showTrackContextMenu,
+      setIsExpanded,
+      getColorBands,
+      getXRange,
     );
   } else if (setting.trackType == "gene") {
     const getGeneBands = () => dataSource.getTranscriptBands(getChromosome());
@@ -320,4 +337,33 @@ function getVariantOpenContextMenu(
 
     session.showContent("Variant", content, STYLE.menu.narrowWidth);
   };
+}
+
+export function getConnectionsTrack(
+  session: GensSession,
+  getSettings: () => DataTrackSettings,
+  getRenderData: () => Promise<ConnectionsTrackData>,
+  showTrackContextMenu: (track: DataTrack) => void,
+  setIsExpanded: (trackId: string, isExpanded: boolean) => void,
+  getColorBands: () => RenderBand[],
+  getXRange: () => Rng,
+  openConnections: (() => void) | null = null,
+): ConnectionsTrack {
+  const settings = getSettings();
+  return new ConnectionsTrack(
+    settings.trackId,
+    settings.trackLabel,
+    settings.trackType,
+    getSettings,
+    (isExpanded) => setIsExpanded(settings.trackId, isExpanded),
+    () => getXRange(),
+    () => session.pos.getChromosome(),
+    getRenderData,
+    (track) => {
+      showTrackContextMenu(track);
+    },
+    () => session.getMarkerModeOn(),
+    () => getColorBands(),
+    openConnections === null ? null : () => openConnections(),
+  );
 }

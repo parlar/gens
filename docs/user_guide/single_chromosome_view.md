@@ -116,6 +116,35 @@ coverage, site selection, and available quality information.
 
 ## Read connections
 
+### The connections track
+
+Every sample with a [registered compact BEDPE
+source](../admin_guide/read_connections.md) gets its own **connections** track,
+drawn on the same horizontal scale as the coverage and BAF tracks above it. A
+breakpoint therefore sits directly under the coverage bin that produced it,
+which is what the side panel's own arc diagram cannot show.
+
+Arc colour marks the evidence type, matching the panel: teal for split
+alignments, blue for read pairs, dark red for SV calls, grey for unspecified.
+Line thickness rises with the number of reported fragments; a connection with no
+reported support is drawn at the thinnest width rather than a middling one, so
+thickness never implies support that was not measured. Wider connections arc
+higher, so nested events read as nested. Hover an arc to read its evidence type,
+fragment count and name.
+
+A connection with only one end in view is drawn as a dashed stub at the end that
+is visible, labelled with the partner chromosome or its position in Mb. It is
+not drawn as an arc, because an arc to a place outside the window would imply a
+distance the track does not have. A connection with neither end in view is not
+drawn at all.
+
+The endpoint refuses windows wider than 1 Mb, so the track says **Zoom in below
+1 Mb to see read connections** rather than drawing an empty lane. A sample with
+no BEDPE registered gets no track at all, so an empty lane always means an empty
+window rather than a missing import.
+
+### The side panel
+
 Open **Read connections** using the branch icon in the top toolbar. Select a
 sample and the visible interval or a saved highlight. This panel requires a
 [registered compact BEDPE source](../admin_guide/read_connections.md), not BAM/CRAM.

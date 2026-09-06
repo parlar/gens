@@ -313,6 +313,39 @@ interface DotTrackData {
   shaded?: ShadedRange[];
 }
 
+/**
+ * A connection as the track draws it.
+ *
+ * Structurally the same as the API's ReadConnection, so a response needs no
+ * translation and the two cannot drift apart in meaning.
+ */
+interface RenderConnectionEnd {
+  chromosome: string;
+  start: number;
+  end: number;
+  strand: "+" | "-" | ".";
+}
+
+interface RenderConnection {
+  id: string;
+  kind: "split" | "pair" | "call" | "unknown";
+  first: RenderConnectionEnd;
+  second: RenderConnectionEnd;
+  fragments: number | null;
+  minimum_observed_mapq: number | null;
+}
+
+interface ConnectionsTrackData {
+  connections: RenderConnection[];
+  /** Set when the server stopped short of the whole window. */
+  truncated: boolean;
+  /** Why nothing can be drawn, when that is the case. */
+  unavailable: string | null;
+}
+
+/** Everything a DataTrack subclass may be handed to draw. */
+type TrackData = BandTrackData | DotTrackData | ConnectionsTrackData;
+
 interface AnnotationTrackData {
   xRange: Rng;
   annotation: { source: string; bands: RenderBand[] };
@@ -443,6 +476,12 @@ interface RenderDataSource {
     id: SampleIdentifier,
     chrom: string,
   ) => Promise<DotTrackData>;
+  getReadConnections: (
+    id: SampleIdentifier,
+    chrom: string,
+    xRange: Rng,
+  ) => Promise<ConnectionsTrackData>;
+  hasReadConnections: (id: SampleIdentifier) => Promise<boolean>;
 
   getTranscriptBands: (chrom: string) => Promise<RenderBand[]>;
   getTranscriptDetails: (geneId: string) => Promise<ApiGeneDetails>;
@@ -762,6 +801,7 @@ type TrackType =
   | "dot-cov"
   | "dot-baf"
   | "dot-hetdensity"
+  | "connections"
   | "gene"
   | "position"
   | "gene-list";

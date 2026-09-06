@@ -84,6 +84,7 @@ export const TRACK_IDS = {
   cov: "log2_cov",
   baf: "baf",
   het_density: "het_density",
+  connections: "connections",
   variants: "variants",
   sample_annot: "sample_annot",
   genes: "genes",
@@ -291,6 +292,11 @@ export const dotTrackTypes: TrackType[] = [
   "dot-cov",
   "dot-hetdensity",
 ];
+export const connectionsTrackTypes: TrackType[] = ["connections"];
+
+// Widest region the read-evidence endpoint will serve. Kept beside the other
+// track limits so a reader of this file sees what each track costs.
+export const CONNECTIONS_MAX_WINDOW = 1_000_000;
 
 export const BAF_Y_RANGE: [number, number] = [0, 1];
 // log2 of observed over the chromosome's typical bin, matching the coverage

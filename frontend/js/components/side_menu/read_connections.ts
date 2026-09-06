@@ -1,5 +1,6 @@
 import { COLORS, ICONS } from "../../constants";
 import {
+  CONNECTION_COLORS,
   CONNECTION_KINDS,
   EVIDENCE_WINDOW,
   endpointGeometry,
@@ -29,12 +30,6 @@ interface ConnectionSources {
 }
 
 const PAGE_SIZE = 50;
-const CONNECTION_COLORS = {
-  split: COLORS.teal,
-  pair: COLORS.blue,
-  call: "#a12622",
-  unknown: COLORS.darkGray,
-};
 const template = document.createElement("template");
 template.innerHTML = String.raw`
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">

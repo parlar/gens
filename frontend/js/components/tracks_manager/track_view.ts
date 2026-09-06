@@ -2,6 +2,7 @@ import {
   ANIM_TIME,
   BAF_Y_RANGE,
   bandTrackTypes,
+  connectionsTrackTypes,
   COLORS,
   dotTrackTypes,
   SIZES,
@@ -332,6 +333,7 @@ export class TrackView extends ShadowBaseElement {
       (sample: Sample) => this.session.getDisplaySampleLabel(sample),
       getCoverageRange,
       getSampleAnnotSources,
+      (id: SampleIdentifier) => this.dataSource.hasReadConnections(id),
     );
     this.lastRenderedSamples = samples;
     this.session.tracks.setTracks(dataTrackSettings);
@@ -525,6 +527,14 @@ export class TrackView extends ShadowBaseElement {
       if (bandTrackTypes.includes(track.track.trackType)) {
         track.track.setHeights(trackHeights.bandCollapsed);
       } else if (dotTrackTypes.includes(track.track.trackType)) {
+        track.track.setHeights(
+          trackHeights.dotCollapsed,
+          trackHeights.dotExpanded,
+        );
+      } else if (connectionsTrackTypes.includes(track.track.trackType)) {
+        // Arcs need vertical room to separate, so the lane follows the dot
+        // track heights the reader has already chosen rather than the shorter
+        // band height.
         track.track.setHeights(
           trackHeights.dotCollapsed,
           trackHeights.dotExpanded,
