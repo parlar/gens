@@ -58,3 +58,32 @@ whenever this repo's research uses that cohort.
   contains usable observations, in the noncarriers, before fixing it as a
   control. Apply a pre-declared callability filter rather than discovering
   emptiness afterwards.
+
+## BAF-005 three defects that only a running instance exposed
+
+The heterozygote density track passed typecheck, 71 unit tests, lint and a
+build, and had been validated offline against a real truth deletion. Running it
+in a real Gens instance exposed three defects in a row, none of which any of
+those checks could have caught.
+
+- **Claimed:** the track counted heterozygous sites per bin.
+  **Actually rested on:** the stored Gens BAF track holds every site, homozygous
+  ones included. Inside the chr1 truth deletion the carrier still has 138 stored
+  sites and only 5 are heterozygous, so counting points hid the event. The unit
+  tests supplied only heterozygous sites; the offline check read genotypes from
+  the SNV VCF and had already filtered to GT 0/1.
+- **Claimed:** the default binning was sensible.
+  **Actually rested on:** a fixed count of 100 bins across the view, so bin width
+  followed the zoom. Over 350 kb that is 3.5 kb per bin, expecting one to three
+  sites against a minimum of five, so every bin was uninformative and the track
+  drew nothing at all. Every unit test set the bin count explicitly and so never
+  exercised the default.
+- **Claimed:** depleted bins were coloured red.
+  **Actually rested on:** DotTrack.draw replacing every dot's colour with black
+  before drawing. The colour was dead code that could never render.
+
+**Would have caught them:** Gate D4, evidence before assertions, applied to the
+real rendering path rather than to the computation alone. A green unit suite
+over synthetic inputs says nothing about the shape of the production data, the
+defaults the caller actually uses, or whether the value reaches the screen. For
+a display feature, "verified" means a screenshot of the real thing.
