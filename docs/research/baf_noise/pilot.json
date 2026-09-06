@@ -1,0 +1,27 @@
+{
+  "sample": "Seq25-16025",
+  "truth_sample": "NA12881",
+  "genome_build": "GRCh38",
+  "bam": "/home/parlar_ai/dev/cnv_validation/from_rv/storage/userdata/cnv_validation/wgs-cnv-validation/raredisease/Seq25-16025/raredisease_results/alignment/Seq25-16025_sorted_md.bam",
+  "vcf": "/home/parlar_ai/dev/cnv_validation/from_rv/storage/userdata/cnv_validation/wgs-cnv-validation/raredisease/Seq25-16025/raredisease_results/call_snv/genome/likeable_sled_snv.vcf.gz",
+  "baf": "/home/parlar_ai/dev/cnv_validation/from_rv/storage/userdata/cnv_validation/wgs-cnv-validation/raredisease/Seq25-16025/raredisease_results/gens/Seq25-16025_gens.baf.bed.gz",
+  "sv_vcfs": [
+    "/home/parlar_ai/dev/cnv_validation/from_rv/storage/userdata/cnv_validation/truvari_comparisons/prepared_truth/NA12881.all.vcf.gz",
+    "/home/parlar_ai/dev/cnv_validation/from_rv/storage/userdata/cnv_validation/wgs-cnv-validation/raredisease/Seq25-16025/raredisease_results/call_sv/genome/likeable_sled_sv.vcf.gz"
+  ],
+  "windows": [
+    {"chrom": "chr1", "start": 20000001, "end": 22000000},
+    {"chrom": "chr6", "start": 20000001, "end": 22000000},
+    {"chrom": "chr12", "start": 20000001, "end": 22000000},
+    {"chrom": "chr20", "start": 20000001, "end": 22000000}
+  ],
+  "sv_padding": 10000,
+  "minimum_gq": 30,
+  "minimum_informative_depth": 10,
+  "maximum_sites_per_window": 1500,
+  "maximum_pileup_depth": 10000,
+  "bam_settings": [
+    {"name": "bam_q20", "mapq": 20, "baseq": 20},
+    {"name": "bam_q30", "mapq": 30, "baseq": 30}
+  ]
+}

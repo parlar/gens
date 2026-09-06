@@ -1,0 +1,65 @@
+project:
+  title: Exploratory WGS BAF noise audit
+  domain: Genomic allele-count visualization
+  started: '2026-09-05'
+  role: Clawbot Executor
+  status: active
+field_understanding:
+  sota_summary: Count sampling, genotype ascertainment, alignment bias and denominator semantics must be separated before changing BAF processing.
+  sources:
+    - GATK DepthPerAlleleBySample documentation and source
+    - GATK CollectAllelicCounts source
+    - MoChA WGS AD and phased-imbalance workflow
+    - CNVpytor regional likelihood paper and implementation
+    - GATK ModelSegments and AlleleFractionModeller source documentation
+    - Tang et al. 2026 WGS mosaicism paper and mCAs_WGS resources
+    - PureCN process-matched mapping-bias documentation and FACETS methods
+    - biastools and personalized-reference WGS studies
+    - Zitovsky and Love beta-binomial allelic-expression shrinkage
+  limitations:
+    - Targeted source review only; not a systematic literature survey.
+    - No independent NA12881 heterozygous-site truth or copy-neutral mask verified.
+hypotheses:
+  - id: H1
+    statement: AD-versus-DP mismatch contributes to the spread or bias of current-formula BAF.
+    status: completed_exploratory
+    observation: AD sums differed at 33 of 2213 sites; changing the denominator did not narrow the distribution here.
+    interpretation: Not supported as a major explanation in the selected windows.
+  - id: H2
+    statement: BAM counting and fixed quality filters change dispersion beyond informative-depth changes.
+    status: completed_exploratory
+    observation: Common-site SD was 0.08940 at Q20 and 0.09219 at Q30; median depth decreased from 30 to 29.
+    interpretation: A benefit independent of depth is not established; stricter filtering did not narrow the common-site distribution.
+  - id: H3
+    statement: Overlapping-mate counting changes effective depth or allelic balance.
+    status: completed_exploratory
+    observation: Q20 read-versus-fragment BAF had mean absolute difference 0.01381; repeated observations occurred at 1723 of 2213 sites.
+    interpretation: Fragment counting matters for individual observations; no clinical performance benefit was tested.
+  - id: H4
+    statement: Residual BAF dispersion exceeds the ideal binomial variance at retained sites.
+    status: completed_exploratory
+    observation: Common-site variance ratio was 1.0023 for VCF AD-sum BAF, 0.9241 for BAM Q20 and 0.9393 for BAM Q30.
+    interpretation: No large excess dispersion is evident here; ascertainment and limited spatial coverage prevent a general noise-floor claim.
+  - id: H5
+    statement: Site-specific correction or phase-aware aggregation improves true CNV discrimination.
+    status: deferred
+    reason: Requires independent samples and positive-event validation; not tested by this pilot.
+experiment:
+  protocol_path: protocol.md
+  configuration_path: pilot.json
+  status: completed_exploratory
+  user_approval: Treat the baseline as exploratory.
+  preregistration: Protocol recorded before measurement; no git commit requested or made.
+  results: analysis.md
+  raw_artifacts: ../../../volumes/gens/data/baf_noise_pilot/Seq25-16025/pilot-v2/
+literature:
+  reviewed_on: '2026-09-05'
+  status: focused_scoping_review_complete
+  search_log: literature/survey.md
+  evidence_map: literature/evidence-map.md
+  references: literature/references.bib
+  candidate_comparisons:
+    - Raw BAF versus an existing unphased regional count-likelihood estimate
+    - Phase-aware fragment evidence with cross-site fragment deduplication
+    - Process-matched normal-panel mapping-bias calibration
+  next_experiment: Await agreement on independent controls, positive events and a locked evaluation protocol.
