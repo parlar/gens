@@ -174,3 +174,59 @@ sensitivity, a calibrated probability, or a validated caller. Only the negative
 result is decisive, and only for this coverage and event size. Nominal
 percentiles are exploratory: the loci were enumerated exhaustively rather than
 selected on appearance, but the pedigree structure violates independence.
+
+---
+
+## Amendment 1, 2026-09-06, before any real result was read
+
+The controls above were run first, as required, and **two of them failed**. The
+failures were in the specification, not the data. No interval result had been
+computed when this amendment was written; only simulated controls had been run.
+
+### Defect found: the separation threshold was referenced to 0.5
+
+The estimator is constrained to f <= 0.5, so under true balance it can only err
+downward. Measured on simulated balanced data at realistic depths, the null
+distribution of f-hat has mean 0.483, and **54 percent of null draws sit exactly
+on the 0.5 boundary**. It is a spike plus a left tail, not a symmetric
+distribution, so an SD does not summarise it.
+
+The locked rule "f-hat at least 3 null SD below 0.5" therefore had a **measured
+false-positive rate of 2.2 percent per test**, not the roughly 0.1 percent that
+"3 SD" implies. Across the nine noncarrier tests that is an expected 0.2 false
+positives, and about an 18 percent chance of spuriously triggering the
+"Invalid" outcome and voiding the run.
+
+**Replacement rule.** A sample separates when its f-hat falls at or below the
+**1st percentile of its own parametric bootstrap null** at its own site depths,
+equivalently a bootstrap p-value <= 0.01. This is calibrated by construction.
+Measured false-positive rate of the replacement, from two independent nulls at
+the same depths: **1.4 percent** against a nominal 1 percent. The SD and the
+"SD below 0.5" figure are retained in the output as descriptive context only and
+no longer carry the decision.
+
+The "Supported / Refuted / Invalid" structure, the intervals, the site selection
+and the deletion arm are unchanged.
+
+### Defect found: two controls were themselves boundary-contaminated
+
+The original control 1 required recovering a planted f = 0.5 to within 0.02. At
+a boundary the estimator is *supposed* to be biased, so that control tested the
+wrong thing and would fail correct code. The original control 2 measured the
+double-counting SD ratio under balance, where truncation against the boundary
+distorts how the spread scales.
+
+Both are replaced by interior-f versions, plus a direct calibration control:
+
+1. **Interior recovery at f = 1/3.** Measured bias 0.0001 over 400 simulated
+   datasets. An estimator that cannot recover a planted 1/3 cannot test for one.
+2. **Decision-rule calibration.** Two independent balanced nulls at identical
+   depths; the share of one below the other's 1st percentile is the rule's
+   measured false-positive rate. Measured 1.4 percent, bound 2 percent.
+3. **Deliberate double counting at f = 1/3.** Duplicating every site shrinks the
+   SD by a factor of 1.32, against sqrt(2) = 1.414 for genuinely independent
+   sites. The direction is confirmed: reused fragments inflate confidence, so
+   every reported SD and p-value here is optimistic by an unmeasured factor,
+   because cross-SNP fragment sharing cannot be corrected without BAM access.
+
+All three now pass. The label-shuffle control remains to be run with the results.
