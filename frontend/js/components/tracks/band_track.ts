@@ -148,6 +148,18 @@ export class BandTrack extends DataTrack {
 
     this.setHoverTargets(hoverTargets);
 
+    // Said plainly rather than left to be inferred from a gap: the bands that
+    // arrived are a partial answer, and the reader cannot tell which part.
+    if (renderData.incomplete != null) {
+      drawLabel(
+        this.ctx,
+        renderData.incomplete,
+        this.dimensions.width - 6,
+        10,
+        { textAlign: "right", textColor: COLORS.darkGray },
+      );
+    }
+
     this.drawEnd();
   }
 

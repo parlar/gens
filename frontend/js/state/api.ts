@@ -221,12 +221,17 @@ export class API {
   getAnnotations(
     trackId: string,
     chromosome: string,
+    xRange: Rng,
   ): Promise<ApiSimplifiedAnnotation[]> {
-    const key = `${trackId}:${chromosome}`;
+    // Requests are widened to whole megabases so that panning reuses the
+    // window either side of the view instead of asking again on every frame.
+    const start = Math.max(1, Math.floor(xRange[0] / 1e6) * 1e6);
+    const end = Math.ceil(xRange[1] / 1e6) * 1e6;
+    const key = `${trackId}:${chromosome}:${start}-${end}`;
     if (this.annotsCache[key] === undefined) {
       const annotations = get(
         new URL(`tracks/annotations/track/${trackId}`, this.apiURI).href,
-        { chromosome },
+        { chromosome, start, end },
       ) as Promise<ApiSimplifiedAnnotation[]>;
 
       this.annotsCache[key] = annotations;

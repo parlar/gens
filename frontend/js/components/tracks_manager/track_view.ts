@@ -559,7 +559,7 @@ async function getAnnotColorBands(
       annotId,
       session.pos.getChromosome(),
     );
-    colorBands.push(...annotBands);
+    colorBands.push(...annotBands.bands);
   }
   return colorBands;
 }

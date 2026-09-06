@@ -380,6 +380,15 @@ type Chromosome =
 interface BandTrackData {
   // xRange: Rng;
   bands: RenderBand[];
+  /**
+   * Why the bands are not the whole story, when that is the case.
+   *
+   * A repeat catalogue holds more records over a wide view than the server
+   * will send, and the ones it sends are whichever came first. Drawing that
+   * subset unlabelled would show repeats over part of a chromosome and
+   * nothing over the rest, which reads as a fact about the genome.
+   */
+  incomplete?: string | null;
 }
 
 interface IdeogramTrackData {
@@ -448,7 +457,7 @@ interface RenderDataSource {
   getAnnotationBands: (
     sourceId: string,
     chrom: string,
-  ) => Promise<RenderBand[]>;
+  ) => Promise<BandTrackData>;
   getAnnotationDetails: (bandId: string) => Promise<ApiAnnotationDetails>;
 
   getSampleAnnotSources: (

@@ -206,7 +206,7 @@ export function getBandTrack(
   session: GensSession,
   dataSource: RenderDataSource,
   setting: DataTrackSettings,
-  getRenderBands: () => Promise<RenderBand[]>,
+  getRenderBands: () => Promise<RenderBand[] | BandTrackData>,
   showTrackContextMenu: (track: DataTrack) => void,
   setIsExpanded: (trackId: string, isExpanded: boolean) => void,
   setExpandedHeight: (trackId: string, height: number) => void,
@@ -222,13 +222,13 @@ export function getBandTrack(
     // updateDataTrackSettings(setting.trackId, updatedSetting);
   };
   const getRenderData = () => {
+    // Most band sources supply a plain list; annotation tracks also say when
+    // the server stopped short of the whole window.
     async function getBandTrackData(
-      getAnnotation: () => Promise<RenderBand[]>,
+      getAnnotation: () => Promise<RenderBand[] | BandTrackData>,
     ): Promise<BandTrackData> {
-      const bands = await getAnnotation();
-      return {
-        bands,
-      };
+      const result = await getAnnotation();
+      return Array.isArray(result) ? { bands: result } : result;
     }
 
     return getBandTrackData(getRenderBands);

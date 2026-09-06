@@ -21,6 +21,20 @@ LOG = logging.getLogger(__name__)
 
 INDEXES = {
     ANNOTATIONS_COLLECTION: [
+        # Every annotation query names one track, so the track has to lead the
+        # index. Without it a region query walks the matching positions in
+        # every track and discards most of them, which a repeat catalogue turns
+        # from a rounding error into the cost of the query.
+        IndexModel(
+            [
+                ("track_id", ASCENDING),
+                ("chrom", ASCENDING),
+                ("start", ASCENDING),
+                ("end", ASCENDING),
+            ],
+            name="track_genome_position",
+            background=True,
+        ),
         IndexModel(
             [("chrom", ASCENDING), ("start", ASCENDING), ("end", ASCENDING)],
             name="genome_position",

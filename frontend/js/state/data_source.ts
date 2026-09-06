@@ -1,4 +1,5 @@
 import {
+  ANNOTATIONS_RESPONSE_CAP,
   HET_DENSITY_MAX_WINDOW,
   HET_DENSITY_Y_RANGE,
   STYLE,
@@ -38,9 +39,17 @@ export function getRenderDataSource(
   const getAnnotation = async (
     recordId: string,
     chrom: string,
-  ): Promise<RenderBand[]> => {
-    const annotData = await api.getAnnotations(recordId, chrom);
-    return parseAnnotations(annotData, chrom);
+  ): Promise<BandTrackData> => {
+    const xRange = getXRange();
+    const annotData = await api.getAnnotations(recordId, chrom, xRange);
+    // The server stops at a fixed number of records and does not choose them
+    // by distance from the view, so a full response means the track is showing
+    // part of the window without being able to say which part.
+    const incomplete =
+      annotData.length >= ANNOTATIONS_RESPONSE_CAP
+        ? "Too many to show here. Zoom in to see them all."
+        : null;
+    return { bands: parseAnnotations(annotData, chrom), incomplete };
   };
 
   const getCovData = async (

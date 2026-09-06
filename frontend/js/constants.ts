@@ -298,6 +298,11 @@ export const connectionsTrackTypes: TrackType[] = ["connections"];
 // track limits so a reader of this file sees what each track costs.
 export const CONNECTIONS_MAX_WINDOW = 1_000_000;
 
+// Matches MAX_ANNOTATIONS in gens/crud/annotations.py. A response of exactly
+// this many records is how the client learns the server stopped early; the
+// records it did send are whichever came first, not the ones nearest the view.
+export const ANNOTATIONS_RESPONSE_CAP = 20_000;
+
 export const BAF_Y_RANGE: [number, number] = [0, 1];
 // log2 of observed over the chromosome's typical bin, matching the coverage
 // track's scale. Symmetric, so a fourfold drop and a fourfold excess are equally

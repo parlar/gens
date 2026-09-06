@@ -1,4 +1,4 @@
-import { HET_DENSITY_MAX_WINDOW } from "../constants";
+import { ANNOTATIONS_RESPONSE_CAP, HET_DENSITY_MAX_WINDOW } from "../constants";
 import { EVIDENCE_WINDOW } from "../util/read_connections";
 import { API } from "./api";
 import { getRenderDataSource } from "./data_source";
@@ -122,5 +122,61 @@ describe("read connections", () => {
 
     getReadEvidence.mockResolvedValue({ connections: [], truncated: false });
     expect(await source.hasReadConnections(sample)).toBe(true);
+  });
+});
+
+describe("annotations", () => {
+  const getAnnotations = jest.fn();
+  const api = { getAnnotations } as unknown as API;
+
+  const sourceOver = (span: number) => {
+    const xRange: Rng = [1, 1 + span];
+    return getRenderDataSource(
+      api,
+      () => "1",
+      () => xRange,
+      () => null,
+    );
+  };
+
+  const record = (start: number) => ({
+    record_id: `r${start}`,
+    name: "Alu",
+    chrom: "1",
+    start,
+    end: start + 300,
+    color: "grey",
+    type: "annotation",
+  });
+
+  beforeEach(() => getAnnotations.mockReset());
+
+  test("asks only for the region in view", async () => {
+    getAnnotations.mockResolvedValue([record(1000)]);
+    const source = sourceOver(500_000);
+    await source.getAnnotationBands("track1", "1");
+
+    expect(getAnnotations).toHaveBeenCalledWith("track1", "1", [1, 500_001]);
+  });
+
+  test("a partial answer says so", async () => {
+    // The server stops at a fixed count and does not pick the records nearest
+    // the view, so a full response cannot be drawn as though it were complete.
+    getAnnotations.mockResolvedValue(
+      Array.from({ length: ANNOTATIONS_RESPONSE_CAP }, (_, i) =>
+        record(i * 10 + 1),
+      ),
+    );
+    const data = await sourceOver(1000).getAnnotationBands("track1", "1");
+
+    expect(data.incomplete).toMatch(/Zoom in/);
+  });
+
+  test("a complete answer says nothing", async () => {
+    getAnnotations.mockResolvedValue([record(1000), record(2000)]);
+    const data = await sourceOver(1000).getAnnotationBands("track1", "1");
+
+    expect(data.incomplete).toBeNull();
+    expect(data.bands).toHaveLength(2);
   });
 });
