@@ -95,3 +95,66 @@ class TestOnlyOverlappingVariantsComeBack:
         elsewhere = {**variant("other_chrom", 1400, 1600), "chromosome": "2"}
         db.variant.insert_many([variant("inside", 1400, 1600), elsewhere])
         assert found(adapter) == ["inside"]
+
+
+def found_in(
+    adapter: ScoutMongoAdapter,
+    start: int | None,
+    end: int | None,
+    category: VariantCategory = VariantCategory.SINGLE_VAR,
+) -> list[str]:
+    variants = adapter.get_variants(
+        case_id=CASE,
+        sample_name=SAMPLE,
+        region=GenomicRegion(chromosome="1", start=start, end=end),
+        variant_category=category,
+    )
+    return sorted(v.document_id for v in variants)
+
+
+class TestEachBoundNarrowsOnItsOwn:
+    """The route allows `end` to be omitted, and the filter only ran when both
+    bounds were present, so a request with just a start returned the whole
+    chromosome."""
+
+    @pytest.fixture(autouse=True)
+    def _variants(self, db):
+        db.variant.insert_many(
+            [
+                variant("before", 10, 100),
+                variant("inside", 1400, 1600),
+                variant("after", 5000, 5100),
+            ]
+        )
+
+    def test_a_start_alone_excludes_what_lies_before_it(self, adapter):
+        assert found_in(adapter, 1000, None) == ["after", "inside"]
+
+    def test_an_end_alone_excludes_what_lies_after_it(self, adapter):
+        assert found_in(adapter, None, 2000) == ["before", "inside"]
+
+    def test_neither_bound_returns_the_chromosome(self, adapter):
+        # Nothing was asked for, so nothing is withheld.
+        assert found_in(adapter, None, None) == ["after", "before", "inside"]
+
+
+class TestEveryCategoryUsesScoutsPositionField:
+    """Which field holds a variant's first base does not depend on its
+    category — Scout uses `position` for all of them. Choosing the field from
+    the category meant every category except `sv` looked up a field that does
+    not exist, so `cancer_sv` lost exactly the variants that span the view."""
+
+    @pytest.mark.parametrize(
+        "category",
+        [
+            VariantCategory.SINGLE_VAR,
+            VariantCategory.CANCER_SV,
+            VariantCategory.MOBILE_ELEMENT,
+            VariantCategory.STRUCTURAL,
+        ],
+        ids=lambda c: c.value,
+    )
+    def test_a_spanning_variant_is_found(self, adapter, db, category):
+        spanning = {**variant("spanning", 500, 2500), "category": category.value}
+        db.variant.insert_one(spanning)
+        assert found_in(adapter, 1000, 2000, category) == ["spanning"]

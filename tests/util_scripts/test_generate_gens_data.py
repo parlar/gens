@@ -104,6 +104,12 @@ def test_generate_cov_bed_gap_and_chromosome(tmp_path: Path):
 
 
 def test_generate_cov_bed_incomplete_window(tmp_path: Path):
+    # A window that never fills is still coverage that was measured. This used
+    # to assert the opposite — that a partial window at end of input produced
+    # nothing — which meant the tail of every chromosome was dropped, and at
+    # the coarsest zoom that is up to 100 kb of real data. The loop already
+    # flushed a partial window when the chromosome changed, so the two ends of
+    # the same chromosome were treated differently.
     cov_file = tmp_path / "incomplete.cov"
     cov_file.write_text(
         "\n".join(
@@ -113,6 +119,18 @@ def test_generate_cov_bed_incomplete_window(tmp_path: Path):
             ]
         )
     )
+
+    output = io.StringIO()
+    generate_cov_bed(cov_file, win_size=100, prefix="x", out_fh=output)
+
+    # One window covering 1-90, at its midpoint, averaging the two ratios.
+    assert output.getvalue().splitlines() == ["x_1\t44\t45\t0.15000000000000002"]
+
+
+def test_generate_cov_bed_writes_nothing_for_empty_input(tmp_path: Path):
+    # The flush must not invent a window where no coverage was read.
+    cov_file = tmp_path / "empty.cov"
+    cov_file.write_text("@header\nCONTIG\tSTART\tEND\tRATIO\n")
 
     output = io.StringIO()
     generate_cov_bed(cov_file, win_size=100, prefix="x", out_fh=output)
@@ -257,6 +275,59 @@ class TestBafNeedsAnObservation:
             "1\t10\t0.2"
         ]
 
+    def test_a_missing_depth_does_not_abort_the_run(self, tmp_path: Path):
+        # `./.:.` is how a caller writes "no depth here". The record is split
+        # without stripping the newline, so the value arrived as ".\n", missed
+        # the missing-value check and raised on int() — taking the whole
+        # conversion down, not just this line.
+        assert run_gvcf(tmp_path, "1\t10\t.\tA\tC\t.\t.\t.\tGT:DP\t./.:.") == []
+
+
+def run_block(tmp_path: Path, record: str, sites: list[int]) -> list[str]:
+    """Run one gVCF record against a chosen set of selected sites."""
+    gvcf_file = tmp_path / "block.vcf"
+    gvcf_file.write_text(record + "\n")
+    positions_file = tmp_path / "sites.tsv"
+    positions_file.write_text("\n".join(f"1\t{site}" for site in sites))
+
+    output = io.StringIO()
+    parse_gvcfvaf(gvcf_file, positions_file, output, depth_threshold=10)
+    return output.getvalue().splitlines()
+
+
+class TestAReferenceBlockCoversEverySiteInIt:
+    """A gVCF reference block spans END - POS + 1 bases and speaks for all of
+    them. Selection matched on the record's start alone, so a block was used
+    only when it happened to begin exactly on a selected site, and every other
+    site it covered was silently dropped from the homozygous baseline."""
+
+    BLOCK = "1\t10\t.\tA\t<NON_REF>\t.\t.\tEND=20\tGT:DP\t0/0:30"
+
+    def test_a_site_inside_the_block_is_reported(self, tmp_path: Path):
+        assert run_block(tmp_path, self.BLOCK, [15]) == ["1\t15\t0"]
+
+    def test_every_selected_site_in_the_block_is_reported(self, tmp_path: Path):
+        assert run_block(tmp_path, self.BLOCK, [10, 15, 20]) == [
+            "1\t10\t0",
+            "1\t15\t0",
+            "1\t20\t0",
+        ]
+
+    def test_sites_outside_the_block_are_not(self, tmp_path: Path):
+        assert run_block(tmp_path, self.BLOCK, [9, 21]) == []
+
+    def test_a_block_below_the_depth_threshold_reports_nothing(self, tmp_path: Path):
+        shallow = "1\t10\t.\tA\t<NON_REF>\t.\t.\tEND=20\tGT:DP\t0/0:2"
+        assert run_block(tmp_path, shallow, [15]) == []
+
+    def test_a_record_with_end_before_its_position_covers_only_itself(
+        self, tmp_path: Path
+    ):
+        # Malformed, and seen in the wild. Costs one site rather than raising
+        # or resolving to an empty span that drops the record.
+        broken = "1\t41\t.\tA\tC\t.\t.\tEND=40\tGT:AD:DP\t0/1:6,6:12"
+        assert run_block(tmp_path, broken, [41]) == ["1\t41\t0.5"]
+
 
 def test_generate_gens_data_end_to_end(tmp_path: Path):
 
@@ -299,7 +370,15 @@ def test_generate_gens_data_end_to_end(tmp_path: Path):
     assert baf_output.exists()
     assert not (outdir / "sample.baf.tmp").exists()
 
+    # The same 100 bases of coverage appear at every zoom level. Only the
+    # finest window (100 bp) fills during the pass; the four coarser ones are
+    # written by the end-of-input flush, and used to be dropped entirely, so
+    # this input produced a file that was empty above the deepest zoom.
     assert cov_output.read_text().splitlines() == [
+        "o_1\t49\t50\t0.15000000000000002",
+        "a_1\t49\t50\t0.15000000000000002",
+        "b_1\t49\t50\t0.15000000000000002",
+        "c_1\t49\t50\t0.15000000000000002",
         "d_1\t49\t50\t0.15000000000000002",
     ]
 

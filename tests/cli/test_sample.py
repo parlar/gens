@@ -697,12 +697,13 @@ def test_update_sample_updates_document(
         meta=[existing_meta, other_meta],
     )
 
-    monkeypatch.setattr(
-        cli_update,
-        "get_sample",
-        lambda db, sample_id, case_id, genome_build: sample_obj,
+    # Stored for real rather than patched in. The command reads the record
+    # itself now, because a validated SampleInfo cannot represent a sample
+    # whose files have moved, and patching the reader made the test depend on
+    # which one the command happens to call.
+    db.get_collection(SAMPLES_COLLECTION).insert_one(
+        sample_obj.model_dump(exclude={"baf_index", "coverage_index"})
     )
-    # monkeypatch.setattr(update_sample_cmd, "parse_meta_file", lambda p: "META")
 
     meta_file = tmp_path / "meta.tsv"
     meta_file.write_text("type\tvalue\nA\t1\n")

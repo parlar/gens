@@ -213,13 +213,19 @@ def get_samples_for_case(
     return samples
 
 
-def get_sample(
+def get_sample_document(
     samples_c: Collection[dict[str, Any]],
     sample_id: str,
     case_id: str,
     genome_build: GenomeBuild | None = None,
-) -> SampleInfo:
-    """Get a sample with id."""
+) -> dict[str, Any]:
+    """The stored record, exactly as written, without reading its data files.
+
+    SampleInfo types both file paths as FilePath, so it cannot represent a
+    sample whose files have moved — which is correct for reading, and useless
+    for repairing. `gens update sample --coverage <new path>` exists to fix a
+    moved path and could not load the record it was there to fix.
+    """
     sample_filter: dict[str, Any] = {
         "sample_id": sample_id,
         "case_id": case_id,
@@ -233,6 +239,17 @@ def get_sample(
         raise SampleNotFoundError(
             f'No sample with id: "{sample_id}" in database', sample_id
         )
+    return result
+
+
+def get_sample(
+    samples_c: Collection[dict[str, Any]],
+    sample_id: str,
+    case_id: str,
+    genome_build: GenomeBuild | None = None,
+) -> SampleInfo:
+    """Get a sample with id."""
+    result = get_sample_document(samples_c, sample_id, case_id, genome_build)
 
     sample_meta = [MetaEntry.model_validate(m) for m in result.get("meta", [])]
 

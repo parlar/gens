@@ -46,11 +46,14 @@ class ScoutMongoAdapter(InterpretationAdapter):
         # Restrict to variants overlapping the requested interval. This was
         # commented out, so a bounded query returned every variant on the
         # chromosome. This is the copy the API actually runs.
-        if all(param is not None for param in [region.start, region.end]):
-            query = {
-                **query,
-                **query_genomic_region(region.start, region.end, variant_category),  # type: ignore
-            }
+        #
+        # Applied whenever either bound is given: `end` is optional on the
+        # route, and skipping the filter unless both were present meant a
+        # request with only a start was not narrowed at all.
+        query = {
+            **query,
+            **query_genomic_region(region.start, region.end, "position"),
+        }
         projection: dict[str, bool] = {}
         LOG.info("Query variant database: %s", query)
 

@@ -10,7 +10,7 @@ from gens.bedpe import prepare_read_evidence
 from gens.cli.util import db as cli_db
 from gens.cli.util.util import ChoiceType, normalize_sample_type
 from gens.crud.read_evidence import get_evidence_source, register_evidence_source
-from gens.crud.samples import get_sample, update_sample
+from gens.crud.samples import get_sample, get_sample_document, update_sample
 from gens.db.collections import (
     SAMPLES_COLLECTION,
 )
@@ -18,7 +18,7 @@ from gens.exceptions import SampleNotFoundError
 from gens.load.meta import parse_meta_file
 from gens.models.genomic import GenomeBuild
 from gens.models.read_evidence import EvidenceSource
-from gens.models.sample import SampleInfo, SampleSex
+from gens.models.sample import MetaEntry, SampleInfo, SampleSex
 
 log_level = getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
@@ -142,28 +142,37 @@ def sample(
 
     db = cli_db.get_cli_db([SAMPLES_COLLECTION])
 
-    sample_obj = get_sample(
+    # The stored record rather than a validated SampleInfo. SampleInfo types
+    # both paths as FilePath, so it cannot be built for a sample whose files
+    # have moved, and repairing a moved path is the main reason to run this.
+    # The merged result is validated in full below, so the replacement is held
+    # to the same standard `gens load sample` applies.
+    stored = get_sample_document(
         db[SAMPLES_COLLECTION],
         sample_id=sample_id,
         case_id=case_id,
         genome_build=genome_build,
     )
+    updated = {
+        key: value for key, value in stored.items() if key not in {"_id", "meta"}
+    }
+    existing_meta = [MetaEntry.model_validate(m) for m in stored.get("meta", [])]
 
     if sample_type is not None:
-        sample_obj.sample_type = (
+        updated["sample_type"] = (
             normalize_sample_type(sample_type) if sample_type else None
         )
     if sex is not None:
-        sample_obj.sex = sex
+        updated["sex"] = sex
     if coverage is not None:
-        sample_obj.coverage_file = coverage.resolve()
+        updated["coverage_file"] = coverage.resolve()
     if baf is not None:
-        sample_obj.baf_file = baf.resolve()
+        updated["baf_file"] = baf.resolve()
 
     if meta_file:
         meta_results = parse_meta_file(meta_file)
 
-        existing_file_names = [meta.file_name for meta in sample_obj.meta]
+        existing_file_names = [meta.file_name for meta in existing_meta]
 
         if meta_results.file_name in existing_file_names:
             click.echo(f"Meta data {meta_results.file_name} already exists on sample")
@@ -173,18 +182,18 @@ def sample(
                     return
 
         # Overwrite existing meta with the same name
-        sample_obj.meta = [
+        existing_meta = [
             meta_entry
-            for meta_entry in sample_obj.meta
+            for meta_entry in existing_meta
             if meta_entry.file_name != meta_results.file_name
         ]
-        sample_obj.meta.append(meta_results)
+        existing_meta.append(meta_results)
 
-    # Re-validate the full sample object so updates follow the same
+    updated["meta"] = [meta.model_dump() for meta in existing_meta]
+
+    # Validate the whole merged record, so updates follow the same
     # file/content validation path as `gens load sample`.
-    sample_obj = SampleInfo.model_validate(
-        sample_obj.model_dump(exclude={"baf_index", "coverage_index"})
-    )
+    sample_obj = SampleInfo.model_validate(updated)
 
     update_sample(db, sample_obj)
     click.secho("Finished updating sample ✔", fg="green")

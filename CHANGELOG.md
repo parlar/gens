@@ -20,6 +20,14 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Show the multi-chromosome view's data for the sample its heading names, rebuilding the tracks when the main sample changes; they were built once for whichever sample came first, so after switching the view showed one sample's coverage under another's label
+- Keep every selected site inside a gVCF reference block, instead of only one starting exactly on the block, which dropped most of the homozygous baseline
+- Stop a missing depth value (`./.:.`) aborting the whole BAF conversion: the record was split without stripping the newline, so the value never matched the missing-value check
+- Write the last coverage window at end of input rather than discarding it, which lost the tail of every chromosome and produced nothing at all for an input shorter than one window
+- Refresh annotation background colouring when panning outside the region it was fetched for
+- Apply the variant region filter using Scout's `position` field for every category, not only `sv`; `cancer_sv` and the rest looked up a field that does not exist and lost the variants spanning the view
+- Narrow variant queries on whichever bounds are given, instead of only when both are, so a request with just a start no longer returns the whole chromosome
+- Let `gens update sample` repair a moved or missing data file, which it refused to do because it validated the recorded paths before applying the replacement
 - Put the Python package into the source distribution, which held only assets, so a wheel built from the published archive contained no importable modules
 - Include the compiled CSS and JavaScript in built distributions by declaring them as build artifacts; `.gitignore` had been hiding them from the build backend, and only the Docker build escaped it because its context has no ignore file
 - Show imported annotation comments and track names as text rather than markup, so a URL-shaped string containing a tag can no longer introduce an element or an event handler, and only `http` and `https` links are made clickable

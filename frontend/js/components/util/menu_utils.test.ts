@@ -28,7 +28,6 @@ describe("links built from imported text", () => {
   });
 
   test("a link that would run code is not made clickable", () => {
-    // eslint-disable-next-line no-script-url
     const node = getAHref("click me", "javascript:alert(1)");
 
     expect(node instanceof HTMLAnchorElement).toBe(false);
@@ -38,7 +37,6 @@ describe("links built from imported text", () => {
   test("only http and https are accepted", () => {
     expect(isSafeHref("https://example.org/")).toBe(true);
     expect(isSafeHref("http://example.org/")).toBe(true);
-    // eslint-disable-next-line no-script-url
     expect(isSafeHref("javascript:alert(1)")).toBe(false);
     expect(isSafeHref("data:text/html,<script>alert(1)</script>")).toBe(false);
     expect(isSafeHref("not a url at all")).toBe(false);

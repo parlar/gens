@@ -63,11 +63,10 @@ def get_variants(
     # what routes/annotations.py reaches through AdapterDep; only the exception
     # classes here are imported elsewhere. Both are fixed, but they remain
     # duplicates and will drift again.
-    if all(param is not None for param in [region.start, region.end]):
-        query = {
-            **query,
-            **query_genomic_region(region.start, region.end, variant_category),  # type: ignore
-        }
+    query = {
+        **query,
+        **query_genomic_region(region.start, region.end, "position"),
+    }
     projection: dict[str, bool] = {}
     # query database
     LOG.info("Query variant database: %s", query)

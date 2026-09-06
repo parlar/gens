@@ -11,6 +11,8 @@ import shutil
 import statistics
 import subprocess
 import sys
+from bisect import bisect_left, bisect_right
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional, TextIO
 
@@ -207,6 +209,20 @@ def generate_cov_bed(
                 reg_ratios.append(curr_ratio)
                 force_end = False
 
+    # The loop writes a window when it fills or when the chromosome changes,
+    # and running out of input is neither, so whatever was still buffered was
+    # dropped. At the coarsest zoom the window is 100 kb, so this silently lost
+    # the end of every chromosome, and an input shorter than one window
+    # produced nothing at all.
+    if active_region is not None and reg_ratios:
+        mid_point = (
+            active_region.start + (active_region.end - active_region.start) // 2
+        )
+        out_fh.write(
+            f"{prefix}_{active_region.chrom}\t{mid_point - 1}\t{mid_point}"
+            f"\t{statistics.mean(reg_ratios)}\n"
+        )
+
 
 def write_chrom_sizes(cov_bed_file: Path, out_path: Path) -> None:
     chrom_sizes: dict[str, int] = {}
@@ -282,14 +298,19 @@ def parse_gvcfvaf(
     - If having AD reads but less than threshold, skip
     """
 
-    baf_positions = set()
+    # Kept per chromosome and sorted so a record covering a span can be asked
+    # which selected positions fall inside it. A set keyed on the start alone
+    # could only answer for a record one base long, so a reference block was
+    # matched only when it happened to begin exactly on a selected site and
+    # every other site it covered was dropped.
+    selected: dict[str, list[int]] = defaultdict(list)
     with read_file(baf_positions_file) as baf_positions_fh:
         for line in baf_positions_fh:
             line = line.rstrip()
             chrom_raw, pos = line.split("\t")
-            chrom = normalize_chr(chrom_raw)
-            pos_key = f"{chrom}_{pos}"
-            baf_positions.add(pos_key)
+            selected[normalize_chr(chrom_raw)].append(int(pos))
+    for positions in selected.values():
+        positions.sort()
 
     with read_file(gvcf_file) as gvcf_fh:
 
@@ -302,8 +323,8 @@ def parse_gvcfvaf(
 
             gvcf_count += 1
             gvcf_pos: Region = gvcf_region(gvcf_line)
-            position_key = f"{gvcf_pos.chrom}_{gvcf_pos.start}"
-            if position_key not in baf_positions:
+            covered = selected_in_span(selected, gvcf_pos)
+            if not covered:
                 continue
 
             entry = GVCFEntry(gvcf_line)
@@ -330,11 +351,32 @@ def parse_gvcfvaf(
                     continue
                 baf_freq = parsed_baf
 
-            print(f"{gvcf_pos.chrom}\t{gvcf_pos.start}\t{baf_freq}", file=out_fh)
+            # One row per selected site the record covers. For an ordinary
+            # variant record that is the single site it sits on; for a
+            # reference block it is every selected site in the block, each a
+            # real homozygous-reference observation at the same depth.
+            for position in covered:
+                print(f"{gvcf_pos.chrom}\t{position}\t{baf_freq}", file=out_fh)
             match_count += 1
 
         skipped = gvcf_count - match_count
         print(f"{skipped} variants skipped!", file=sys.stderr)
+
+
+def selected_in_span(
+    selected: dict[str, list[int]], region: "Region"
+) -> list[int]:
+    """The selected sites this record covers, in ascending order.
+
+    A gVCF reference block spans END - POS + 1 bases and speaks for all of
+    them, so every selected site inside it is an observation.
+    """
+    positions = selected.get(region.chrom)
+    if not positions:
+        return []
+    first = bisect_left(positions, region.start)
+    last = bisect_right(positions, region.end)
+    return positions[first:last]
 
 
 def gvcf_region(line: str) -> Region:
@@ -345,7 +387,10 @@ def gvcf_region(line: str) -> Region:
     info = cols[7]
     info_end_match = re.search(r"(?:^|;)END=(.*?)(?:;|$)", info)
     end = int(info_end_match.group(1)) if info_end_match else pos
-    return Region(chrom, pos, end)
+    # END below POS is malformed; treat such a record as covering its own
+    # position rather than an empty span, so one bad line costs one site
+    # instead of being silently dropped.
+    return Region(chrom, pos, max(end, pos))
 
 
 class Region:
@@ -357,7 +402,10 @@ class Region:
 
 class GVCFEntry:
     def __init__(self, line: str):
-        cols = line.split("\t")
+        # rstrip first: without it the last FORMAT value keeps its newline, so
+        # a missing depth arrives as ".\n" rather than ".", slips past every
+        # missing-value check and raises on int().
+        cols = line.rstrip("\n").split("\t")
 
         self.chrom = normalize_chr(cols[0])
         self.start = int(cols[1])

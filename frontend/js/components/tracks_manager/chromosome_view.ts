@@ -86,7 +86,22 @@ export class ChromosomeView extends ShadowBaseElement {
       };
     }
 
-    const settingSample = this.session.getSamples()[0];
+    await this.buildTracks();
+  }
+
+  /** The sample the current tracks were built for. */
+  private builtForSample: Sample | null = null;
+
+  private async buildTracks() {
+    const session = this.session;
+    const dataSource = this.dataSource;
+
+    // The sample these tracks describe. The heading above them names the main
+    // sample, so the data has to come from the same one: this used to take
+    // whichever sample happened to be first, and after switching to another
+    // the view showed one patient's coverage under another patient's name.
+    const settingSample = this.session.getMainSample();
+    this.builtForSample = settingSample;
     const sampleAnnots = await dataSource.getSampleAnnotSources(settingSample);
 
     for (const chrom of CHROMOSOMES) {
@@ -205,6 +220,19 @@ export class ChromosomeView extends ShadowBaseElement {
     }
   }
 
+  /** Whether the tracks describe a different sample than the heading names. */
+  public showsAnotherSampleThanItsLabel(): boolean {
+    if (this.builtForSample == null) {
+      return false;
+    }
+    const main = this.session.getMainSample();
+    return (
+      this.builtForSample.sampleId !== main.sampleId ||
+      this.builtForSample.caseId !== main.caseId ||
+      this.builtForSample.genomeBuild !== main.genomeBuild
+    );
+  }
+
   public render(settings: RenderSettings) {
     const mainSample = this.session.getMainSample();
     const sampleLabel = this.session.getDisplaySampleLabel(mainSample);
@@ -214,9 +242,28 @@ export class ChromosomeView extends ShadowBaseElement {
     );
     this.sampleLabel.textContent = `${sampleLabel} (${mainSample.sampleType || NO_SAMPLE_TYPE_DEFAULT}, case: ${caseLabel})`;
 
+    // The tracks are built once, against the sample that was main at the time,
+    // and their sample annotation sources belong to that sample specifically.
+    // Rather than draw one patient's data under another's name, clear them and
+    // rebuild for the sample now named above.
+    if (this.showsAnotherSampleThanItsLabel()) {
+      void this.rebuildForMainSample();
+      return;
+    }
+
     for (const track of this.tracks) {
       track.track.render(settings);
     }
+  }
+
+  private async rebuildForMainSample() {
+    for (const track of this.tracks) {
+      track.container.remove();
+    }
+    this.tracks = [];
+    this.session.chromTracks.setTracks([]);
+    await this.buildTracks();
+    this.render({ reloadData: true });
   }
 
   // FIXME: This goes counter to having data track settings drive the visualization

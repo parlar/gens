@@ -355,13 +355,19 @@ export class TrackView extends ShadowBaseElement {
       return;
     }
 
-    // Every time a new chromosome is selected, the color bands needs to be updated
-    // This is hard to avoid, as it requires an API call
-    // Let's ponder ahead if this could be done in a nicer way
+    // The color bands are annotations, and annotations are fetched for the
+    // region in view rather than the whole chromosome, so panning or zooming
+    // outside what was fetched leaves the background coloured from the old
+    // region. Asking whether the current view is still covered catches that,
+    // and every case the explicit flags below catch, without each caller
+    // having to remember to set one. Repeats are cheap: the API layer widens
+    // requests to whole megabases and caches them, so staying inside the
+    // fetched window costs no request.
     if (
       renderSettings.chromosomeChange ||
       renderSettings.samplesUpdated ||
-      renderSettings.colorByChange
+      renderSettings.colorByChange ||
+      this.colorBandsAreStale()
     ) {
       this.updateColorBands().then(() => {
         // Make sure that the render is triggered after updated annotation bands
@@ -544,8 +550,30 @@ export class TrackView extends ShadowBaseElement {
     }
   }
 
+  /** The chromosome and range the current color bands were fetched for. */
+  private colorBandsCoverage: { chromosome: string; range: Rng } | null = null;
+
+  /** Whether the view has moved outside what the color bands describe. */
+  public colorBandsAreStale(): boolean {
+    if (this.session.profile.getColorAnnotations().length === 0) {
+      return false;
+    }
+    if (this.colorBandsCoverage === null) {
+      return true;
+    }
+    if (this.colorBandsCoverage.chromosome !== this.sessionPos.getChromosome()) {
+      return true;
+    }
+    const [start, end] = this.sessionPos.getXRange();
+    const [covered_start, covered_end] = this.colorBandsCoverage.range;
+    return start < covered_start || end > covered_end;
+  }
+
   private async updateColorBands() {
+    const chromosome = this.sessionPos.getChromosome();
+    const range = this.sessionPos.getXRange();
     this.colorBands = await getAnnotColorBands(this.session, this.dataSource);
+    this.colorBandsCoverage = { chromosome, range };
   }
 }
 
