@@ -46,6 +46,44 @@ Prefer opaque connection IDs rather than read names if sharing files.
 See [the synthetic example](../../tests/data/read_connections.bedpe) for exact
 tab-delimited records. It is demonstration data, not observed biological evidence.
 
+## Producing evidence for uncalled events
+
+An SV caller's output can only show what it called. A reader looking at a
+coverage dip that nothing called needs the opposite: the clusters a caller saw
+and discarded for being too weak.
+
+`utils/discordant_evidence.py` produces those from an indexed BAM or CRAM. It
+keeps read pairs whose fragment is longer than the library's normal range, pairs
+whose mates disagree about orientation or chromosome, and reads carrying a split
+alignment. It clusters them by position and exports every cluster at or above a
+support floor, including clusters no caller would report.
+
+```bash
+python utils/discordant_evidence.py \
+    /path/to/sample.bam /path/to/sample.evidence.bedpe \
+    --max-normal 900 --min-support 3 --threads 8
+```
+
+Set `--max-normal` from the library's own insert size rather than the default:
+Picard `CollectInsertSizeMetrics` reports the median and standard deviation, and
+median plus three standard deviations is a reasonable normal limit. On one 30x
+WGS library with a 400 bp median and 157 bp standard deviation, that is about
+900 bp, and roughly 1% of reads survive the filter.
+
+The `fragments` column is the number a reader weighs. Measured against windows
+with no known structural variant on that library, clusters at support 3 to 9
+occur a few times per 100 kb and are background; clusters at support 10 or more
+did not occur at all. A known 43 kb deletion scored 28. Those figures are one
+library's and should be re-measured for another, but the shape of the answer —
+that the count separates signal from background — is what makes the export
+useful without this tool deciding which is which.
+
+This is not a caller and the output is not a variant list. A cluster is evidence
+that some fragments disagree with the reference in a consistent way; whether
+that means a deletion is the reader's judgement, made alongside coverage and
+BAF. Repeat-rich regions produce high-support clusters with low mapping
+quality, so the `minimum_mapq` column matters as much as the count.
+
 ## Import for an existing sample
 
 ```bash
