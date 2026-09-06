@@ -148,7 +148,8 @@ export class API {
     // The version is pinned so the gene set cannot change under a reader
     // part-way through a panel as the panel is curated.
     return get(
-      new URL(`gene_lists/${encodeURIComponent(panelId)}/genes`, this.apiURI).href,
+      new URL(`gene_lists/${encodeURIComponent(panelId)}/genes`, this.apiURI)
+        .href,
       { genome_build: this.genomeBuild, version },
       signal,
     ) as Promise<ApiPanelGenes | null>;
@@ -209,18 +210,29 @@ export class API {
   }
 
   private annotsCache: Record<string, Promise<ApiSimplifiedAnnotation[]>> = {};
-  getAnnotations(trackId: string): Promise<ApiSimplifiedAnnotation[]> {
-    if (this.annotsCache[trackId] === undefined) {
-      const query = {};
+  /**
+   * Annotations on one chromosome.
+   *
+   * The chromosome is part of the request rather than a filter applied after
+   * it arrives. A repeat catalogue holds millions of records genome-wide, and
+   * fetching all of them to draw one chromosome is the difference between a
+   * usable track and an unusable one.
+   */
+  getAnnotations(
+    trackId: string,
+    chromosome: string,
+  ): Promise<ApiSimplifiedAnnotation[]> {
+    const key = `${trackId}:${chromosome}`;
+    if (this.annotsCache[key] === undefined) {
       const annotations = get(
         new URL(`tracks/annotations/track/${trackId}`, this.apiURI).href,
-        query,
+        { chromosome },
       ) as Promise<ApiSimplifiedAnnotation[]>;
 
-      this.annotsCache[trackId] = annotations;
+      this.annotsCache[key] = annotations;
     }
 
-    return this.annotsCache[trackId];
+    return this.annotsCache[key];
   }
 
   /**

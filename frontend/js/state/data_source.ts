@@ -39,7 +39,7 @@ export function getRenderDataSource(
     recordId: string,
     chrom: string,
   ): Promise<RenderBand[]> => {
-    const annotData = await api.getAnnotations(recordId);
+    const annotData = await api.getAnnotations(recordId, chrom);
     return parseAnnotations(annotData, chrom);
   };
 

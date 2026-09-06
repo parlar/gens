@@ -59,10 +59,21 @@ async def get_annotations_tracks(
 
 @router.get("/annotations/track/{track_id}", tags=[ApiTags.ANNOT])
 async def get_annotation_track(
-    track_id: PydanticObjectId, db: GensDb
+    track_id: PydanticObjectId,
+    db: GensDb,
+    chromosome: str | None = None,
+    start: int | None = None,
+    end: int | None = None,
 ) -> list[SimplifiedTrackInfo]:
-    """Get annotations for a region."""
-    return get_annotations_for_track(track_id=track_id, db=db)
+    """Get annotations for a region.
+
+    Without a region the whole track is returned, which is what existing
+    callers expect and is fine for tracks of a few tens of thousands. A repeat
+    catalogue has to be asked for by region.
+    """
+    return get_annotations_for_track(
+        track_id=track_id, db=db, chromosome=chromosome, start=start, end=end
+    )
 
 
 @router.get("/annotations/record/{record_id}", tags=[ApiTags.ANNOT])

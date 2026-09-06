@@ -101,10 +101,27 @@ def get_annotation_tracks(
     return [AnnotationTrackInDb.model_validate(track) for track in cursor]
 
 
+# Most annotations a reader wants over a window fit well under this. The cap
+# exists for repeat catalogues, where a whole chromosome holds hundreds of
+# thousands of records that could not be told apart on screen even if they were
+# sent.
+MAX_ANNOTATIONS = 20_000
+
+
 def get_annotations_for_track(
-    track_id: PydanticObjectId, db: Database[Any]
+    track_id: PydanticObjectId,
+    db: Database[Any],
+    chromosome: str | None = None,
+    start: int | None = None,
+    end: int | None = None,
+    limit: int = MAX_ANNOTATIONS,
 ) -> list[SimplifiedTrackInfo]:
-    """Get annotation track from database."""
+    """Annotations on a track, optionally only those touching a region.
+
+    Sending a whole track regardless of the view is affordable for a few tens
+    of thousands of records and not for a repeat catalogue, which is the same
+    reason the coverage track is stored at several resolutions.
+    """
     projection: dict[str, bool] = {
         "name": True,
         "start": True,
@@ -112,9 +129,19 @@ def get_annotations_for_track(
         "chrom": True,
         "color": True,
     }
-    cursor: Cursor = db.get_collection(ANNOTATIONS_COLLECTION).find(
-        {"track_id": track_id}, projection
-    )
+    query: dict[str, Any] = {"track_id": track_id}
+    if chromosome is not None:
+        query["chrom"] = chromosome
+    # Overlap, not containment: an annotation reaching into the view from
+    # outside it is part of what the reader is looking at.
+    if end is not None:
+        query["start"] = {"$lte": end}
+    if start is not None:
+        query["end"] = {"$gte": start}
+
+    cursor: Cursor = db.get_collection(ANNOTATIONS_COLLECTION).find(query, projection)
+    if limit > 0:
+        cursor = cursor.limit(limit)
     return [
         SimplifiedTrackInfo.model_validate(
             {
