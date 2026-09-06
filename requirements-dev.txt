@@ -5,6 +5,9 @@ pytest-flask
 pytest-mongodb
 coveralls
 mongomock
+# starlette's TestClient, used by tests/blueprints/test_read_evidence.py.
+# Without it pytest aborts collection and no test in the suite runs.
+httpx2
 
 # utils
 pylint
