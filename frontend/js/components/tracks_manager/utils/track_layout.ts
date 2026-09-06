@@ -16,6 +16,10 @@ export function getPortableId(settings: DataTrackSettings): string {
       trackType = TRACK_IDS.baf;
       specifier = sampleType;
     }
+    if (settings.trackType == "dot-hetdensity") {
+      trackType = TRACK_IDS.het_density;
+      specifier = sampleType;
+    }
     if (settings.trackType == "variant") {
       trackType = TRACK_IDS.variants;
       specifier = sampleType;

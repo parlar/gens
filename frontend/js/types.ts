@@ -391,6 +391,10 @@ interface RenderDataSource {
     chrom: string,
     xRange: Rng,
   ) => Promise<RenderDot[]>;
+  getHetDensityData: (
+    id: SampleIdentifier,
+    chrom: string,
+  ) => Promise<RenderDot[]>;
 
   getTranscriptBands: (chrom: string) => Promise<RenderBand[]>;
   getTranscriptDetails: (geneId: string) => Promise<ApiGeneDetails>;
@@ -709,6 +713,7 @@ type TrackType =
   | "variant"
   | "dot-cov"
   | "dot-baf"
+  | "dot-hetdensity"
   | "gene"
   | "position"
   | "gene-list";

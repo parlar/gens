@@ -1,0 +1,160 @@
+import { buildHetDensity, poissonAtMost } from "./het_density";
+
+/** Evenly spaced sites, `perBin` in each of `binCount` bins over [1, span]. */
+function evenSites(span: number, binCount: number, perBin: number) {
+  const width = span / binCount;
+  const sites: ApiCoverageDot[] = [];
+  for (let bin = 0; bin < binCount; bin += 1) {
+    for (let i = 0; i < perBin; i += 1) {
+      sites.push({
+        pos: 1 + bin * width + ((i + 0.5) * width) / perBin,
+        value: 0.5,
+      });
+    }
+  }
+  return sites;
+}
+
+describe("poissonAtMost", () => {
+  it("returns 1 when nothing is expected", () => {
+    expect(poissonAtMost(0, 0)).toBe(1);
+  });
+
+  it("matches exp(-lambda) for observing zero", () => {
+    expect(poissonAtMost(0, 5)).toBeCloseTo(Math.exp(-5), 12);
+    expect(poissonAtMost(0, 45)).toBeCloseTo(Math.exp(-45), 25);
+  });
+
+  it("approaches 1 when the observation matches the expectation", () => {
+    expect(poissonAtMost(20, 20)).toBeGreaterThan(0.4);
+    expect(poissonAtMost(20, 20)).toBeLessThan(0.7);
+  });
+
+  it("stays finite at a large expectation where a naive product underflows", () => {
+    // exp(-800) is 0 in double precision; the log-space sum must still work.
+    const p = poissonAtMost(800, 800);
+    expect(Number.isFinite(p)).toBe(true);
+    expect(p).toBeGreaterThan(0.4);
+    expect(p).toBeLessThan(0.6);
+  });
+
+  it("rejects nonsense input", () => {
+    expect(Number.isNaN(poissonAtMost(-1, 5))).toBe(true);
+    expect(Number.isNaN(poissonAtMost(5, NaN))).toBe(true);
+  });
+});
+
+describe("buildHetDensity", () => {
+  it("reports a flat region as at baseline with ratio near 1", () => {
+    const result = buildHetDensity(evenSites(10000, 10, 10), [1, 10001], {
+      binCount: 10,
+    });
+    expect(result.baseline).toBe(10);
+    expect(result.noBaseline).toBe(false);
+    expect(result.siteCount).toBe(100);
+    for (const bin of result.bins) {
+      expect(bin.state).toBe("informative");
+      expect(bin.ratio).toBeCloseTo(1, 10);
+    }
+  });
+
+  it("flags a depleted bin without dragging down the baseline", () => {
+    // Nine normal bins and one empty: a heterozygous deletion in one bin.
+    const sites = evenSites(10000, 10, 20).filter(
+      (site) => site.pos < 4001 || site.pos > 5000,
+    );
+    const result = buildHetDensity(sites, [1, 10001], { binCount: 10 });
+
+    expect(result.baseline).toBe(20);
+    const empty = result.bins[4];
+    expect(empty.observed).toBe(0);
+    expect(empty.state).toBe("informative");
+    expect(empty.ratio).toBe(0);
+    // exp(-20); decisive rather than merely suggestive.
+    expect(empty.depletionP).toBeLessThan(1e-8);
+
+    const others = result.bins.filter((_, index) => index !== 4);
+    for (const bin of others) {
+      expect(bin.ratio).toBeCloseTo(1, 10);
+    }
+  });
+
+  it("never calls an unmappable view depleted", () => {
+    // The failure mode found in the oracle-bin run: six of seven truth deletion
+    // intervals had near-zero callable sites in every sample. With no baseline
+    // these must be uninformative, not six deletions.
+    const result = buildHetDensity([], [1, 10001], { binCount: 10 });
+
+    expect(result.noBaseline).toBe(true);
+    expect(result.baseline).toBe(0);
+    for (const bin of result.bins) {
+      expect(bin.state).toBe("no-baseline");
+      expect(bin.ratio).toBeNull();
+      expect(bin.expected).toBeNull();
+      expect(bin.depletionP).toBeNull();
+    }
+  });
+
+  it("treats male chrX outside PAR and chrY as absent, not deleted", () => {
+    // A handful of stray calls across the view, far below any usable density.
+    const stray: ApiCoverageDot[] = [
+      { pos: 500, value: 0.5 },
+      { pos: 7200, value: 0.5 },
+    ];
+    const result = buildHetDensity(stray, [1, 10001], { binCount: 10 });
+
+    expect(result.noBaseline).toBe(true);
+    expect(result.bins.every((bin) => bin.state === "no-baseline")).toBe(true);
+  });
+
+  it("withholds a verdict when too few sites are expected", () => {
+    // Baseline of 3 per bin: an empty bin occurs by chance about 5 percent of
+    // the time, which is not evidence of a missing haplotype.
+    const result = buildHetDensity(evenSites(10000, 10, 3), [1, 10001], {
+      binCount: 10,
+      minExpected: 5,
+    });
+
+    expect(result.baseline).toBe(3);
+    expect(result.noBaseline).toBe(false);
+    for (const bin of result.bins) {
+      expect(bin.state).toBe("uninformative");
+      expect(bin.ratio).toBeNull();
+      expect(bin.expected).toBe(3);
+    }
+  });
+
+  it("counts a site on the region's final position", () => {
+    const result = buildHetDensity(
+      [{ pos: 10001, value: 0.5 }, ...evenSites(10000, 10, 6)],
+      [1, 10001],
+      { binCount: 10, minExpected: 1 },
+    );
+    expect(result.siteCount).toBe(61);
+    expect(result.excludedCount).toBe(0);
+    expect(result.bins[9].observed).toBe(7);
+  });
+
+  it("excludes sites outside the region and non-finite positions", () => {
+    const result = buildHetDensity(
+      [
+        { pos: 0, value: 0.5 },
+        { pos: 99999, value: 0.5 },
+        { pos: NaN, value: 0.5 },
+        ...evenSites(10000, 10, 6),
+      ],
+      [1, 10001],
+      { binCount: 10, minExpected: 1 },
+    );
+    expect(result.excludedCount).toBe(3);
+    expect(result.siteCount).toBe(60);
+  });
+
+  it("rejects an invalid region or bin count", () => {
+    expect(() => buildHetDensity([], [10, 10], {})).toThrow();
+    expect(() => buildHetDensity([], [1, 100], { binCount: 0 })).toThrow();
+    expect(() => buildHetDensity([], [1, 100], { binCount: 2.5 })).toThrow();
+    expect(() => buildHetDensity([], [1, 100], { minExpected: 0 })).toThrow();
+    expect(() => buildHetDensity([], [NaN, 100], {})).toThrow();
+  });
+});

@@ -81,6 +81,7 @@ export const IDB_CACHE = {
 export const TRACK_IDS = {
   cov: "log2_cov",
   baf: "baf",
+  het_density: "het_density",
   variants: "variants",
   sample_annot: "sample_annot",
   genes: "genes",
@@ -283,7 +284,14 @@ export const bandTrackTypes: TrackType[] = [
   "sample-annotation",
   "variant",
 ];
-export const dotTrackTypes: TrackType[] = ["dot-baf", "dot-cov"];
+export const dotTrackTypes: TrackType[] = [
+  "dot-baf",
+  "dot-cov",
+  "dot-hetdensity",
+];
 
 export const BAF_Y_RANGE: [number, number] = [0, 1];
+// Ratios above 2 are clamped for display; a bin cannot be meaningfully more
+// than twice the surrounding density without the baseline itself being wrong.
+export const HET_DENSITY_Y_RANGE: [number, number] = [0, 2];
 export const DEFAULT_COV_Y_RANGE: [number, number] = [-3, 3];

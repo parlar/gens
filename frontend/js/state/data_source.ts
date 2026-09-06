@@ -1,4 +1,10 @@
-import { STYLE, VARIANT_COLORS, ZOOM_STEPS } from "../constants";
+import {
+  HET_DENSITY_Y_RANGE,
+  STYLE,
+  VARIANT_COLORS,
+  ZOOM_STEPS,
+} from "../constants";
+import { buildHetDensity } from "../util/het_density";
 import { prefixNts, transformMap } from "../util/utils";
 import { API } from "./api";
 
@@ -55,6 +61,41 @@ export function getRenderDataSource(
 
     const bafRaw = await api.getBaf(id, chrom, zoom, xRange);
     return parseCoverageDot(bafRaw, STYLE.colors.darkGray);
+  };
+
+  /**
+   * Heterozygote density for the current view, derived from the same BAF sites
+   * the BAF track draws. A deletion or copy-neutral LOH removes heterozygous
+   * sites rather than shifting the band, so the BAF track alone cannot show it.
+   *
+   * Density needs one site per heterozygous position, so this requires the
+   * full-resolution ("d") zoom level. At coarser zooms the stored data is
+   * already aggregated and a count of points measures the binning, not the
+   * genome; the track reports no data rather than a misleading ratio.
+   */
+  const getHetDensityData = async (
+    id: SampleIdentifier,
+    chrom: string,
+  ): Promise<RenderDot[]> => {
+    const xRange = getXRange();
+    const zoom = calculateZoom(xRange);
+    if (zoom !== "d") {
+      return [];
+    }
+
+    const sites = await api.getBaf(id, chrom, zoom, xRange);
+    const density = buildHetDensity(sites, xRange);
+
+    return density.bins
+      .filter((bin) => bin.ratio !== null)
+      .map((bin) => ({
+        x: (bin.start + bin.end) / 2,
+        y: Math.min(bin.ratio as number, HET_DENSITY_Y_RANGE[1]),
+        color:
+          (bin.depletionP ?? 1) < 1e-3
+            ? STYLE.colors.red
+            : STYLE.colors.darkGray,
+      }));
   };
 
   const getTranscriptBands = async (chrom: string): Promise<RenderBand[]> => {
@@ -141,6 +182,7 @@ export function getRenderDataSource(
     getSampleAnnotationDetails,
     getCovData,
     getBafData,
+    getHetDensityData,
     getTranscriptBands,
     getTranscriptDetails: (id: string) => api.getTranscriptDetails(id),
     getGeneListBands,

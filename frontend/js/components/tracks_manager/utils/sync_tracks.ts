@@ -1,4 +1,8 @@
-import { TRACK_IDS, USED_TRACK_HEIGHTS } from "../../../constants";
+import {
+  HET_DENSITY_Y_RANGE,
+  TRACK_IDS,
+  USED_TRACK_HEIGHTS,
+} from "../../../constants";
 import { GensSession } from "../../../state/gens_session";
 import {
   getSampleIdentifierFromID,
@@ -75,6 +79,8 @@ export async function syncDataTrackSettings(
       setting.trackLabel = `${labelPrefix} cov`;
     } else if (setting.trackType === "dot-baf") {
       setting.trackLabel = `${labelPrefix} baf`;
+    } else if (setting.trackType === "dot-hetdensity") {
+      setting.trackLabel = `${labelPrefix} het density`;
     } else if (setting.trackType === "variant") {
       setting.trackLabel = `${labelPrefix} Variants`;
     }
@@ -258,6 +264,30 @@ async function getSampleTracks(
     isHidden: false,
   };
 
+  // Heterozygote density: a count, not a fitted model. It is the only one of
+  // these tracks that can show a deletion or copy-neutral LOH, which remove
+  // heterozygosity instead of shifting the BAF band. Hidden by default so that
+  // existing layouts are unchanged until a user turns it on.
+  const hetDensity: DataTrackSettings = {
+    trackId: `${sampleKey}_${TRACK_IDS.het_density}`,
+    trackLabel: `${sampleDisplayLabel} het density`,
+    trackType: "dot-hetdensity",
+    sample: sampleIdentifier,
+    height: {
+      collapsedHeight: USED_TRACK_HEIGHTS.trackView.collapsedDot,
+      expandedHeight: USED_TRACK_HEIGHTS.trackView.expandedDot,
+    },
+    showLabelWhenCollapsed: true,
+    yAxis: {
+      range: HET_DENSITY_Y_RANGE,
+      label: "Het density",
+      hideLabelOnCollapse: true,
+      highlightedYs: [1],
+    },
+    isExpanded: true,
+    isHidden: true,
+  };
+
   const variants: DataTrackSettings = {
     trackId: `${sampleKey}_${TRACK_IDS.variants}`,
     trackLabel: `${sampleDisplayLabel} Variants`,
@@ -291,5 +321,5 @@ async function getSampleTracks(
     sampleAnnots.push(sampleAnnot);
   }
 
-  return [cov, baf, variants, ...sampleAnnots];
+  return [cov, baf, hetDensity, variants, ...sampleAnnots];
 }

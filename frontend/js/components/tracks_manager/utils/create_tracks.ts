@@ -114,6 +114,18 @@ export function getTrack(
       getColorBands,
       getXRange,
     );
+  } else if (setting.trackType == "dot-hetdensity") {
+    const getSampleHetDensityDots = () =>
+      dataSource.getHetDensityData(setting.sample, getChromosome());
+    track = getDotTrack(
+      session,
+      () => setting,
+      getSampleHetDensityDots,
+      showTrackContextMenu,
+      setIsExpanded,
+      getColorBands,
+      getXRange,
+    );
   } else if (setting.trackType == "gene") {
     const getGeneBands = () => dataSource.getTranscriptBands(getChromosome());
     track = getBandTrack(
