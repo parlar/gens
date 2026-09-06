@@ -4,7 +4,7 @@ import {
   VARIANT_COLORS,
   ZOOM_STEPS,
 } from "../constants";
-import { buildHetDensity } from "../util/het_density";
+import { buildHetDensity, uninterpretedSpans } from "../util/het_density";
 import { prefixNts, transformMap } from "../util/utils";
 import { API } from "./api";
 
@@ -76,17 +76,27 @@ export function getRenderDataSource(
   const getHetDensityData = async (
     id: SampleIdentifier,
     chrom: string,
-  ): Promise<RenderDot[]> => {
+  ): Promise<DotTrackData> => {
     const xRange = getXRange();
     const zoom = calculateZoom(xRange);
     if (zoom !== "d") {
-      return [];
+      return {
+        dots: [],
+        shaded: [
+          {
+            start: xRange[0],
+            end: xRange[1],
+            color: STYLE.colors.lightGray,
+            label: "Zoom in for heterozygote density",
+          },
+        ],
+      };
     }
 
     const sites = await api.getBaf(id, chrom, zoom, xRange);
     const density = buildHetDensity(sites, xRange);
 
-    return density.bins
+    const dots = density.bins
       .filter((bin) => bin.ratio !== null)
       .map((bin) => ({
         x: (bin.start + bin.end) / 2,
@@ -96,6 +106,21 @@ export function getRenderDataSource(
             ? STYLE.colors.red
             : STYLE.colors.darkGray,
       }));
+
+    // Bins with no interpretable evidence are shaded rather than left blank, so
+    // that a sparse or unmappable region reads as "cannot tell" instead of as a
+    // normal region or a track that failed to load. Runs of adjacent bins are
+    // merged so the wash is one span rather than a row of stripes.
+    const label = density.noBaseline
+      ? "No usable heterozygous sites"
+      : "Too few heterozygous sites to judge";
+    const shaded: ShadedRange[] = uninterpretedSpans(density).map((span) => ({
+      ...span,
+      color: STYLE.colors.lightGray,
+      label,
+    }));
+
+    return { dots, shaded };
   };
 
   const getTranscriptBands = async (chrom: string): Promise<RenderBand[]> => {

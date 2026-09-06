@@ -1,4 +1,8 @@
-import { buildHetDensity, poissonAtMost } from "./het_density";
+import {
+  buildHetDensity,
+  poissonAtMost,
+  uninterpretedSpans,
+} from "./het_density";
 
 const BIN = 1000;
 // Ten whole bins on the absolute grid: [0,1000) ... [9000,10000).
@@ -199,5 +203,46 @@ describe("buildHetDensity", () => {
     expect(() => buildHetDensity([], REGION, { binSize: -5 })).toThrow();
     expect(() => buildHetDensity([], REGION, { minExpected: 0 })).toThrow();
     expect(() => buildHetDensity([], [NaN, 100], {})).toThrow();
+  });
+});
+
+describe("uninterpretedSpans", () => {
+  it("returns nothing when every bin is interpretable", () => {
+    const density = buildHetDensity(evenSites(10), REGION, { binSize: BIN });
+    expect(uninterpretedSpans(density)).toEqual([]);
+  });
+
+  it("covers the whole view when no baseline exists", () => {
+    const density = buildHetDensity([], REGION, { binSize: BIN });
+    expect(uninterpretedSpans(density)).toEqual([{ start: 0, end: 10000 }]);
+  });
+
+  it("merges adjacent bins into one span, not a row of stripes", () => {
+    // Bins 0-3 have sites, 4-6 are empty of everything, 7-9 have sites again.
+    // The empty middle must come back as a single span.
+    const sites = evenSites(10).filter(
+      (site) => site.pos < 4000 || site.pos >= 7000,
+    );
+    const density = buildHetDensity(sites, REGION, { binSize: BIN });
+    // Those bins are informative with ratio 0, so nothing is shaded.
+    expect(uninterpretedSpans(density)).toEqual([]);
+
+    // With a minimum above the baseline every bin becomes uninterpretable.
+    const sparse = buildHetDensity(sites, REGION, {
+      binSize: BIN,
+      minExpected: 50,
+    });
+    expect(uninterpretedSpans(sparse)).toEqual([{ start: 0, end: 10000 }]);
+  });
+
+  it("keeps separated runs apart", () => {
+    const density = buildHetDensity(evenSites(10), REGION, { binSize: BIN });
+    // Blank out the ratio on two non-adjacent bins to mimic partial coverage.
+    density.bins[2].ratio = null;
+    density.bins[7].ratio = null;
+    expect(uninterpretedSpans(density)).toEqual([
+      { start: 2000, end: 3000 },
+      { start: 7000, end: 8000 },
+    ]);
   });
 });

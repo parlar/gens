@@ -1,5 +1,6 @@
 import { STYLE } from "../../constants";
 import { drawDotsScaled, getLinearScale } from "../../draw/render_utils";
+import { drawBox, drawLabel } from "../../draw/shapes";
 import { DataTrack } from "./base_tracks/data_track";
 
 export class DotTrack extends DataTrack {
@@ -66,7 +67,7 @@ export class DotTrack extends DataTrack {
     super.syncDimensions();
     super.drawStart();
 
-    const { dots } = renderData;
+    const { dots, shaded } = renderData;
 
     const xRange = this.getXRange();
     const xScale = this.getXScale();
@@ -91,6 +92,49 @@ export class DotTrack extends DataTrack {
       }
       return copy;
     });
+
+    // Painted under the dots so a shaded span never hides a computed value.
+    for (const span of shaded ?? []) {
+      const x1 = xScale(span.start);
+      const x2 = xScale(span.end);
+      if (x2 <= x1) {
+        continue;
+      }
+      drawBox(
+        this.ctx,
+        { x1, x2, y1: 0, y2: this.dimensions.height },
+        {
+          fillColor: span.color,
+          borderColor: span.color,
+          alpha: STYLE.tracks.backgroundColorTransparency,
+        },
+      );
+    }
+
+    // One label for the whole run, so a fully uninterpretable track says so
+    // instead of looking like one that failed to load.
+    const widest = (shaded ?? [])
+      .filter((span) => span.label != null)
+      .reduce<ShadedRange | null>(
+        (best, span) =>
+          best == null || span.end - span.start > best.end - best.start
+            ? span
+            : best,
+        null,
+      );
+    if (widest != null) {
+      const x1 = Math.max(xScale(widest.start), STYLE.yAxis.width);
+      const x2 = xScale(widest.end);
+      if (x2 - x1 > 120) {
+        drawLabel(
+          this.ctx,
+          widest.label,
+          (x1 + x2) / 2,
+          this.dimensions.height / 2,
+          { textAlign: "center", textColor: STYLE.colors.darkGray },
+        );
+      }
+    }
 
     drawDotsScaled(this.ctx, dotsTruncatedY, xScale, yScale, {
       size: STYLE.dotTrack.dotSize,

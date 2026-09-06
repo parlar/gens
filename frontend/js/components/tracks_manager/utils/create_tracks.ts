@@ -115,12 +115,12 @@ export function getTrack(
       getXRange,
     );
   } else if (setting.trackType == "dot-hetdensity") {
-    const getSampleHetDensityDots = () =>
+    const getSampleHetDensityData = () =>
       dataSource.getHetDensityData(setting.sample, getChromosome());
     track = getDotTrack(
       session,
       () => setting,
-      getSampleHetDensityDots,
+      getSampleHetDensityData,
       showTrackContextMenu,
       setIsExpanded,
       getColorBands,
@@ -150,7 +150,7 @@ export function getTrack(
 export function getDotTrack(
   session: GensSession,
   getSettings: () => DataTrackSettings,
-  getDots: () => Promise<RenderDot[]>,
+  getDots: () => Promise<RenderDot[] | DotTrackData>,
   // FIXME: Would it be enough with the track setting here?
   showTrackContextMenu: (track: DataTrack) => void,
   setIsExpanded: (trackId: string, isExpanded: boolean) => void,
@@ -160,13 +160,12 @@ export function getDotTrack(
 ): DotTrack {
   const settings = getSettings();
 
-  const getRenderData = () => {
-    return getDots().then((dots) => {
-      return {
-        dots,
-      };
-    });
-  };
+  // Most dot tracks supply a plain list of dots; heterozygote density also
+  // supplies shaded spans for the stretches it could not interpret.
+  const getRenderData = () =>
+    getDots().then((result) =>
+      Array.isArray(result) ? { dots: result } : result,
+    );
 
   const dotTrack = new DotTrack(
     settings.trackId,

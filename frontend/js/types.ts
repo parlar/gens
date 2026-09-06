@@ -261,8 +261,23 @@ interface RenderDot {
   color: string;
 }
 
+/**
+ * A genomic span the track could not interpret.
+ *
+ * Drawn as a neutral wash rather than left blank, so that "no usable
+ * observations here" is distinguishable from "nothing to report here". A blank
+ * dot track otherwise looks the same as one that failed to load.
+ */
+interface ShadedRange {
+  start: number;
+  end: number;
+  color: string;
+  label?: string;
+}
+
 interface DotTrackData {
   dots: RenderDot[];
+  shaded?: ShadedRange[];
 }
 
 interface AnnotationTrackData {
@@ -394,7 +409,7 @@ interface RenderDataSource {
   getHetDensityData: (
     id: SampleIdentifier,
     chrom: string,
-  ) => Promise<RenderDot[]>;
+  ) => Promise<DotTrackData>;
 
   getTranscriptBands: (chrom: string) => Promise<RenderBand[]>;
   getTranscriptDetails: (geneId: string) => Promise<ApiGeneDetails>;

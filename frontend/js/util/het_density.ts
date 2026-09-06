@@ -123,6 +123,31 @@ export function poissonAtMost(k: number, lambda: number): number {
   return Math.min(1, total);
 }
 
+/**
+ * Merge the runs of adjacent bins that carry no interpretable ratio.
+ *
+ * These are drawn as a single neutral wash. Merging matters because a sparse
+ * view is otherwise a row of separate stripes, which reads as data rather than
+ * as the absence of it.
+ */
+export function uninterpretedSpans(
+  density: HetDensity,
+): { start: number; end: number }[] {
+  const spans: { start: number; end: number }[] = [];
+  for (const bin of density.bins) {
+    if (bin.ratio !== null) {
+      continue;
+    }
+    const previous = spans[spans.length - 1];
+    if (previous != null && previous.end === bin.start) {
+      previous.end = bin.end;
+      continue;
+    }
+    spans.push({ start: bin.start, end: bin.end });
+  }
+  return spans;
+}
+
 /** Median of a numeric array. Returns 0 for an empty array. */
 function median(values: number[]): number {
   if (values.length === 0) {
