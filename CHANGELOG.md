@@ -13,6 +13,8 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Let the CI typecheck and ESLint jobs fail a pull request instead of only reporting; both already pass on `dev`
+
 ### Fixed
 
 - Send the annotation track id as `track_id` from the sample annotation tracks endpoint too, instead of `_id`, so the two sibling endpoints agree and the published schema describes what is actually sent
