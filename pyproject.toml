@@ -7,7 +7,11 @@ name = "Gens"
 dynamic = ["version"]
 description = 'Visualise copy number profiles from WGS data'
 readme = "README.md"
-requires-python = ">=3.8"
+# 3.11 is where StrEnum and stdlib tomllib arrive, both of which are used on
+# the import path. Measured: 3.11 imports the installed package, 3.10 does not.
+# This said >=3.8, so pip would install onto an interpreter that cannot import
+# it and the failure landed at runtime instead of at install time.
+requires-python = ">=3.11"
 license = "MIT"
 keywords = ["WGS", "scout", "CNV", "cancer", "rare disease", "variant", "NGS", "browser"]
 authors = [
@@ -17,9 +21,7 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
+  # Only versions the test suite runs on are listed. See the CI matrix.
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",

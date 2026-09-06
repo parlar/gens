@@ -13,6 +13,8 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Document where Gens' trust boundary is: it authenticates but does not authorize, so every logged-in user can read every sample, and the `roles` field is never consulted
+- Require Python 3.11 or later, which is what the code has needed since it started using `StrEnum`; the package advertised 3.8, so it would install onto interpreters that cannot import it. The test suite now runs on 3.11 as well as 3.12
 - Let the CI typecheck and ESLint jobs fail a pull request instead of only reporting; both already pass on `dev`
 - Remove `MANIFEST.in`, which described packaging for setuptools while the build backend is hatchling, so it had no effect on what was distributed
 

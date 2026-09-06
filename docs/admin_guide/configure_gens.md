@@ -72,6 +72,28 @@ Configuration options. Note that double underscores (`__`) are used to denote su
 
 `authentication = "simple"` requires users to log in with email only. Access is granted only if that email exists in the configured auth user database/collection. Only meant to use for testing.
 
+### Who can see what
+
+Gens checks **who you are**, not **what you may look at**. Once a user is
+logged in they can read every sample, every case and every annotation track in
+the database. There is no per-user, per-case or per-institute restriction, and
+the `roles` field on a user record is stored but never consulted — an `admin`
+role grants nothing that a `user` role does not.
+
+This matters most when authentication is backed by a directory. Configuring
+OAuth or LDAP decides *which* accounts can log in; it does not carry any
+group or attribute from that directory into what Gens shows them. A person who
+can log in can see every patient in the instance.
+
+So the set of accounts that can authenticate **is** the access control list.
+Before exposing an instance, decide whether everyone in that set is meant to
+see every sample it holds. If they are not, run separate instances with
+separate databases, since Gens has no way to divide one.
+
+With `authentication = "disabled"` there is no boundary at all: anyone who can
+reach the port can read everything. Keep such an instance on a machine only you
+can reach, or behind an SSH tunnel.
+
 **gens_db**
 
 - **connection**, mongodb conneciton string
