@@ -99,18 +99,19 @@ def parse_bed_file(file: Path) -> Iterator[dict[str, str]]:
             yield dict(zip(colnames, line))
 
 
-def set_missing_fields(annotation: dict[str, str | int | None], name: str) -> None:
-    """Sets default values to fields that are missing"""
+def set_missing_fields(annotation: dict[str, Any]) -> None:
+    """Fill in the columns a shorter BED file leaves out."""
     for field_name in BED_CORE_FIELDS:
+        # The chromosome arrives under its translated name, and is required.
         if field_name in annotation or field_name == "sequence":
             continue
 
         if field_name == "color":
             annotation[field_name] = DEFAULT_COLOUR
-        elif field_name in "score":
-            annotation[field_name] = None
-        elif field_name in "strand":
+        elif field_name == "strand":
             annotation[field_name] = "."  # default to bed null value
+        else:
+            annotation[field_name] = None
 
 
 def fmt_bed_to_annotation(
@@ -121,9 +122,6 @@ def fmt_bed_to_annotation(
     """Parse a bed or aed entry"""
 
     annotation: dict[str, Any] = {}
-    if len(entry) < len(BED_CORE_FIELDS):
-        fields_in_row = "\t".join(entry.values())
-        raise ValueError(f"Malformad entry in BED file!, row: {fields_in_row}")
     for colname, value in entry.items():
         new_colname = FIELD_TRANSLATIONS.get(colname, colname)
         try:
@@ -131,6 +129,16 @@ def fmt_bed_to_annotation(
         except ValueError as err:
             LOG.info("Bad line: %s", entry)
             raise ParserError(str(err)) from err
+
+    # A record needs a place; everything else has a defined default. Demanding
+    # all seven core fields rejected the four- and six-column BED files the
+    # format is usually written in, even though set_missing_fields can supply
+    # exactly what those files leave out.
+    missing = [field for field in ("chrom", "start", "end") if field not in annotation]
+    if missing:
+        row = "\t".join(entry.values())
+        raise ValueError(f"BED row has no {', '.join(missing)}: {row}")
+    set_missing_fields(annotation)
 
     return AnnotationRecord(
         track_id=track_id,
