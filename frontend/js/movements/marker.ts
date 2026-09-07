@@ -54,7 +54,8 @@ export class GensMarker extends ShadowBaseElement {
   // clicking through on the underlying canvas
   // Better approaches to this are welcome
   private onMouseMove: (e: MouseEvent) => void;
-  private closeCallback: (id: string) => void;
+  // A marker the reader cannot close is created without one.
+  private closeCallback: ((id: string) => void) | null;
   private markerId: string;
   private height: number;
   private color: string;
@@ -95,9 +96,10 @@ export class GensMarker extends ShadowBaseElement {
       this.closeCallback != null && this.isCreated,
     );
 
-    if (this.closeCallback != null) {
+    const closeCallback = this.closeCallback;
+    if (closeCallback != null) {
       this.close.addEventListener("click", () => {
-        this.closeCallback(this.markerId);
+        closeCallback(this.markerId);
       });
     }
 

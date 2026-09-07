@@ -129,13 +129,13 @@ export function getArrangedTracks(
     const layoutId = getPortableId(trackSetting);
 
     if (!layoutIdToSettings[layoutId]) {
-      layoutIdToSettings[layoutId] = [];
+      layoutIdToSettings[layoutId] = [] as DataTrackSettings[];
     }
 
     layoutIdToSettings[layoutId].push(trackSetting);
   }
 
-  const orderedTracks = [];
+  const orderedTracks: DataTrackSettings[] = [];
 
   const orderedLayoutIds = new Set(layout.order);
   if (layout.order.length != orderedLayoutIds.size) {

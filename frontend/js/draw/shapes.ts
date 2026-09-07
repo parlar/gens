@@ -28,8 +28,11 @@ export function drawLineInScale(
   ctx: CanvasRenderingContext2D,
   start: Point,
   end: Point,
-  xScale: Scale,
-  yScale: Scale,
+  // Null for the axis that is not being scaled: a horizontal line takes its y
+  // from the data and its x straight from the canvas. The body has always
+  // branched on that; the parameters said it could not happen.
+  xScale: Scale | null,
+  yScale: Scale | null,
   lineStyle: LineStyle = {},
 ) {
   const scaledStart = {

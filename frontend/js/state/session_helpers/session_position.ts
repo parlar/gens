@@ -50,7 +50,7 @@ export class SessionPosition {
     };
   }
 
-  public setChromosome(chrom: Chromosome, range: Rng = null) {
+  public setChromosome(chrom: Chromosome, range: Rng | null = null) {
     this.chromosome = chrom;
 
     const start = range != null ? range[0] : 1;

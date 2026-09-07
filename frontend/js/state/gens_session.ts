@@ -197,7 +197,7 @@ export class GensSession {
     metaId: string,
   ): { meta: SampleMetaEntry; sample: Sample } | null {
     for (const sample of this.samples) {
-      for (const meta of sample.meta) {
+      for (const meta of sample.meta ?? []) {
         if (meta.id === metaId) {
           return { meta, sample };
         }
@@ -207,14 +207,16 @@ export class GensSession {
   }
 
   public getMetaWarnings(metaId: string): { row: string; col: string }[] {
-    const { meta, sample } = this.getMeta(metaId);
-
-    if (meta == null) {
+    // The null check below was meant to catch a meta id that matches nothing.
+    // Destructuring first meant that case threw before ever reaching it.
+    const found = this.getMeta(metaId);
+    if (found === null) {
       return [];
     }
+    const { meta, sample } = found;
 
     const thresholds = this.warningThresholds;
-    const warningCoords = [];
+    const warningCoords: { row: string; col: string }[] = [];
 
     for (const val of meta.data) {
       if (!val.row_name) {
@@ -248,7 +250,7 @@ export class GensSession {
 
   public hasMetaWarnings(): boolean {
     for (const sample of this.samples) {
-      for (const meta of sample.meta) {
+      for (const meta of sample.meta ?? []) {
         const warnings = this.getMetaWarnings(meta.id);
         if (warnings.length > 0) {
           return true;
@@ -316,7 +318,11 @@ export class GensSession {
         };
       });
     } else {
-      Object.values(this.idToAnnotSource).map((obj) => {
+      // The map was built and thrown away, so asking for every source returned
+      // undefined. Nothing asks yet -- the one caller that would is behind a
+      // showColor flag that is hard-coded false -- but it is what the branch
+      // was written to do.
+      return Object.values(this.idToAnnotSource).map((obj) => {
         return {
           id: obj.track_id,
           label: obj.name,

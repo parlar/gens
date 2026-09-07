@@ -1,4 +1,5 @@
 import { SampleInfo, SamplesTable } from "./sample_table";
+import { requireElement } from "../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -17,7 +18,7 @@ export class GensHome extends HTMLElement {
   connectedCallback() {
     this.appendChild(template.content.cloneNode(true));
 
-    this.tableElem = this.querySelector("#samples-table");
+    this.tableElem = requireElement(this, "#samples-table");
   }
 
   initialize(

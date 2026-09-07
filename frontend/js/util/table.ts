@@ -126,7 +126,7 @@ export function parseTableFromMeta(
   });
 
   const warningRows = warnings.map((coord) => coord.row);
-  const rowStyles = [];
+  const rowStyles: (string | undefined)[] = [];
   for (const rowName of rowNames) {
     let rowStyle: string | undefined = undefined;
     if (warningRows.includes(rowName)) {

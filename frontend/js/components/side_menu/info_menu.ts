@@ -108,8 +108,8 @@ export class InfoMenu extends ShadowBaseElement {
       header.textContent = getSampleLabel(sample.sampleId, sample.sampleAlias);
       this.entries.appendChild(header);
 
-      const simpleDivs = [];
-      const tables = [];
+      const simpleDivs: HTMLDivElement[] = [];
+      const tables: HTMLDivElement[] = [];
 
       simpleDivs.push(
         getEntry({

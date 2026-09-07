@@ -177,7 +177,8 @@ export class SessionProfiles {
     this.save();
   }
 
-  public getTrackLayout(): TrackLayout {
+  // Null until a layout has been saved, which the caller already checks for.
+  public getTrackLayout(): TrackLayout | null {
     return this.profile.layout;
   }
 
