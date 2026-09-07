@@ -19,6 +19,7 @@ import {
 import { CanvasTrack } from "./canvas_track";
 
 import debounce from "lodash.debounce";
+import { heightInUse } from "../../../util/track_resize";
 
 const DEBOUNCE_DELAY = 50;
 
@@ -58,11 +59,18 @@ export abstract class DataTrack extends CanvasTrack {
   }
 
   public getYAxis(): Axis | null {
-    return this.getSettings().yAxis;
+    return this.getSettings().yAxis ?? null;
   }
 
   public setYAxis(range: Rng) {
-    this.getSettings().yAxis.range = range;
+    const yAxis = this.getSettings().yAxis;
+    // Only the dot tracks have one, and only they are offered the control that
+    // calls this. Reaching here without an axis is a wiring mistake, and a
+    // named one beats setting a range on undefined.
+    if (yAxis == null) {
+      throw Error(`${this.label}: this track has no y axis to set a range on`);
+    }
+    yAxis.range = range;
   }
 
   public getIsExpanded(): boolean {
@@ -108,9 +116,7 @@ export abstract class DataTrack extends CanvasTrack {
   }
 
   protected syncHeight() {
-    this.currentHeight = this.getSettings().isExpanded
-      ? this.getSettings().height.expandedHeight
-      : this.getSettings().height.collapsedHeight;
+    this.currentHeight = heightInUse(this.getSettings());
   }
 
   protected initializeExpander(eventKey: string, onExpand: () => void) {
@@ -120,7 +126,7 @@ export abstract class DataTrack extends CanvasTrack {
       eventKey,
       (event) => {
         event.preventDefault();
-        this.setExpanded(!this.getSettings().isExpanded);
+        this.setExpanded?.(!this.getSettings().isExpanded);
       },
       { signal: this.getListenerAbortSignal() },
     );
@@ -134,20 +140,16 @@ export abstract class DataTrack extends CanvasTrack {
     getXScale: () => Scale,
     openTrackContextMenu: ((track: DataTrack) => void) | null,
     getSettings: () => DataTrackSettings,
-    setExpanded: (isExpanded: boolean) => void | null,
-    setExpandedHeight: (height: number) => void | null,
+    setExpanded: ((isExpanded: boolean) => void) | null,
+    setExpandedHeight: ((height: number) => void) | null,
     getMarkerModeOn: () => boolean,
     getColorBands: () => RenderBand[],
   ) {
     const settings = getSettings != null ? getSettings() : null;
-    const heightConf = settings != null ? settings.height : null;
-    const fallbackHeight = TRACK_HEIGHTS.xxs;
-    const height =
-      heightConf != null
-        ? settings.isExpanded
-          ? heightConf.expandedHeight
-          : heightConf.collapsedHeight
-        : fallbackHeight;
+    // heightInUse makes the same choice syncHeight does, including the fall
+    // back to the collapsed height for an expanded track that has no expanded
+    // one -- which used to arrive here as undefined.
+    const height = settings != null ? heightInUse(settings) : TRACK_HEIGHTS.xxs;
     super(id, label, {
       height,
     });
@@ -162,8 +164,11 @@ export abstract class DataTrack extends CanvasTrack {
     this.getColorBands = getColorBands;
 
     this.getYRange = () => {
-      // console.log("Current settings", getSettings());
-      return getSettings().yAxis.range;
+      const yAxis = getSettings().yAxis;
+      if (yAxis == null) {
+        throw Error(`${label}: this track has no y axis to take a range from`);
+      }
+      return yAxis.range;
     };
     this.getYScale = () => {
       const yRange = this.getYRange();
@@ -188,7 +193,7 @@ export abstract class DataTrack extends CanvasTrack {
         const targets = this.labelBox != null ? [this.labelBox] : [];
         return targets;
       },
-      () => this.openTrackContextMenu(this),
+      () => this.openTrackContextMenu?.(this),
       this.getListenerAbortSignal(),
     );
     // Pointer cursor (for all)
@@ -229,9 +234,13 @@ export abstract class DataTrack extends CanvasTrack {
   private scheduleFetch(): void {
     this.fetchData ??= debounce(
       async () => {
+        const load = this.getRenderData;
+        if (load === null) {
+          return;
+        }
         const mySeq = this.renderSeq;
         this.renderLoading();
-        const data = await this.getRenderData();
+        const data = await load();
         // A stale response must not overwrite the cached data, or a later
         // redraw would show the previous view's data. The sequence advances
         // in render(), when the view changes, not here: advancing it at the
@@ -273,7 +282,10 @@ export abstract class DataTrack extends CanvasTrack {
     }
   }
 
-  abstract draw(renderData: TrackData): void;
+  // Null for a track that draws without fetching anything -- the position
+  // track, for one. The branch that calls this says so in a comment; the
+  // signature used to say the opposite.
+  abstract draw(renderData: TrackData | null): void;
 
   protected drawStart() {
     const dimensions = this.dimensions;
@@ -312,10 +324,11 @@ export abstract class DataTrack extends CanvasTrack {
       { fillColor: COLORS.extraLightGray },
     );
 
-    if (this.getSettings().yAxis != null) {
+    const yAxis = this.getSettings().yAxis;
+    if (yAxis != null) {
       renderYAxis(
         this.ctx,
-        this.getSettings().yAxis,
+        yAxis,
         this.getYScale(),
         this.dimensions,
         settings,

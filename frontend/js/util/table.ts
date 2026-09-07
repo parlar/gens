@@ -34,7 +34,11 @@ export function createTable(options: TableData): HTMLDivElement {
 
   const tbody = document.createElement("tbody");
   rows.forEach((row, index) => {
-    const rowElem = createRow(rowNames[index] ?? "", row, rowStyles?.[index]);
+    const rowElem = createRow(
+      rowNames[index] ?? "",
+      row,
+      rowStyles?.[index] ?? null,
+    );
     tbody.appendChild(rowElem);
   });
   table.appendChild(tbody);
@@ -100,7 +104,9 @@ export function parseTableFromMeta(
   const colNames = Array.from(colSet);
 
   const rows: TableCell[][] = rowNames.map((rowName) => {
-    const rowMap = grid.get(rowName);
+    // rowNames are the grid's own keys, so this always finds one; the empty
+    // map keeps that assumption from being a crash if it ever stops holding.
+    const rowMap = grid.get(rowName) ?? new Map<string, TableCell>();
 
     return colNames.map((colName) => {
       const cell = rowMap.get(colName);
@@ -122,7 +128,7 @@ export function parseTableFromMeta(
   const warningRows = warnings.map((coord) => coord.row);
   const rowStyles = [];
   for (const rowName of rowNames) {
-    let rowStyle = undefined;
+    let rowStyle: string | undefined = undefined;
     if (warningRows.includes(rowName)) {
       rowStyle = META_WARNING_ROW_CLASS;
     }

@@ -77,8 +77,10 @@ export function parseSex(value: string): Sex | null {
 function exceedsCopyNumberDeviation(
   chromosome: Chromosome,
   value: number,
+  // Null where the sample does not record one, which the body already treats
+  // as "do not test the sex chromosomes".
   maxDeviation: number,
-  sex?: string,
+  sex?: Sex | null,
 ): boolean {
   const normalizedChrom = normalizeChromosomeLabel(chromosome);
 
@@ -105,7 +107,7 @@ function normalizeChromosomeLabel(label: string | undefined): string {
     .toUpperCase();
 }
 
-function isMaleSex(sex?: string): boolean {
+function isMaleSex(sex?: string | null): boolean {
   if (!sex) {
     return false;
   }

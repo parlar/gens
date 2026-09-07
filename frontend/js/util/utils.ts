@@ -107,11 +107,22 @@ export function isWithinElementVisibleBbox(
   element: _DisplayElement,
   point: Point,
 ) {
+  const { visibleX1, visibleX2, visibleY1, visibleY2 } = element;
+  // An element the layout has not placed yet has no visible box to be inside.
+  // The comparisons said the same thing by returning false against undefined.
+  if (
+    visibleX1 == null ||
+    visibleX2 == null ||
+    visibleY1 == null ||
+    visibleY2 == null
+  ) {
+    return false;
+  }
   return (
-    element.visibleX1 < point.x &&
-    point.x < element.visibleX2 &&
-    element.visibleY1 < point.y &&
-    point.y < element.visibleY2
+    visibleX1 < point.x &&
+    point.x < visibleX2 &&
+    visibleY1 < point.y &&
+    point.y < visibleY2
   );
 }
 
@@ -260,7 +271,7 @@ export function generateTicks(range: Rng, step: number): number[] {
   // Factor needed as ceil works with integers
   const first = Math.ceil((range[0] * factor) / (step * factor)) * step;
 
-  const ticks = [];
+  const ticks: number[] = [];
   for (let v = first; v <= range[1]; v += step) {
     ticks.push(Math.round(v * 100) / 100);
   }
@@ -355,7 +366,7 @@ export function div(): HTMLDivElement {
 
 export function getMainSample(samples: Sample[]): Sample {
   const mainSample = samples.find((s) =>
-    ["proband", "tumor"].includes(s.sampleType),
+    ["proband", "tumor"].includes(s.sampleType ?? ""),
   );
   if (mainSample != null) {
     return mainSample;

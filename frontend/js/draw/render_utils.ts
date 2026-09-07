@@ -51,9 +51,11 @@ export function renderBackground(
   ctx.strokeRect(0, 0, canvasDim.width, canvasDim.height);
 }
 
+// Nothing imports this. Left in place and typed rather than removed, since
+// deleting it is a call for whoever owns the drawing code.
 export function renderBand(
   ctx: CanvasRenderingContext2D,
-  band: RenderBand,
+  band: PositionedBand,
   xScale: Scale,
 ) {
   const style = STYLE.bands;
@@ -120,8 +122,8 @@ export function drawRect(
   width: number,
   height: number,
   lineWidth: number,
-  color: string = null,
-  fillColor: string = null,
+  color: string | null = null,
+  fillColor: string | null = null,
   open: boolean = false,
 ) {
   x = Math.floor(x);

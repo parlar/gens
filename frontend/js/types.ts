@@ -741,20 +741,32 @@ type Sex = "M" | "F";
 
 type ThresholdDirection = "above" | "below" | "both";
 
-type ThresholdKind =
-  | "estimated_chromosome_count_deviate"
-  | "threshold_above"
-  | "threshold_below"
-  | "threshold_deviate";
-
-type WarningThreshold = {
+type WarningThresholdBase = {
   column: string;
-  kind: ThresholdKind;
   size?: number;
   max_deviation?: number;
   message: string;
   ignore_when?: WarningIgnore | WarningIgnore[];
 };
+
+/**
+ * Which numbers a threshold needs depends on the comparison it names, and the
+ * code has always read them that way: "above" reads size, "deviate" reads size
+ * and max_deviation. Written as one flat shape with both optional, that was a
+ * rule the type could not state and the compiler could not check.
+ */
+type WarningThreshold =
+  | (WarningThresholdBase & {
+      kind: "estimated_chromosome_count_deviate";
+      max_deviation: number;
+    })
+  | (WarningThresholdBase & { kind: "threshold_above"; size: number })
+  | (WarningThresholdBase & { kind: "threshold_below"; size: number })
+  | (WarningThresholdBase & {
+      kind: "threshold_deviate";
+      size: number;
+      max_deviation: number;
+    });
 
 type WarningIgnore = {
   sex?: Sex;
