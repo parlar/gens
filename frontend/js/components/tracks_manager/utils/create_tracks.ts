@@ -126,7 +126,10 @@ export function getTrack(
       setIsExpanded,
       getColorBands,
       getXRange,
-      // Depleted bins are coloured by the data source and must not be repainted.
+      // The bars this track draws carry their own colour, which is the coverage
+      // over each bin. The flag covers the dot path, which this track no longer
+      // uses, and is kept so a future change back to dots does not silently
+      // repaint them black.
       true,
     );
   } else if (setting.trackType == "connections") {

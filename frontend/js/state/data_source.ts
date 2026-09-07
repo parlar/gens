@@ -7,6 +7,7 @@ import {
   ZOOM_STEPS,
 } from "../constants";
 import { toTrackData } from "../util/connection_arcs";
+import { hetDensityBars } from "../util/het_density";
 import { EVIDENCE_WINDOW } from "../util/read_connections";
 import { prefixNts, transformMap } from "../util/utils";
 import { API } from "./api";
@@ -128,22 +129,18 @@ export function getRenderDataSource(
       );
     }
 
-    const [low, high] = HET_DENSITY_Y_RANGE;
-    const dots = track.bins.map((bin) => ({
-      x: (bin.start + bin.end) / 2,
-      // A bin with no heterozygous sites has no logarithm; it is pinned to the
-      // bottom of the axis, which is where an unbounded drop belongs.
-      y:
-        bin.observed === 0
-          ? low
-          : Math.min(
-              high,
-              Math.max(low, Math.log2(bin.observed / track.baseline)),
-            ),
-      color: STYLE.colors.darkGray,
-    }));
+    // Bars rather than dots, and shaded by the coverage the backend measured
+    // over the identical bins. A bin is one number on a fixed grid, so a dot at
+    // its midpoint states neither its width nor its meaning: a stretch of
+    // depleted bins came out as a handful of stray pixels. See
+    // frontend/js/util/het_density.ts for what the shading is and is not.
+    const bars = hetDensityBars(
+      track.bins,
+      track.baseline,
+      HET_DENSITY_Y_RANGE,
+    );
 
-    return { dots, shaded: [] };
+    return { dots: [], bars, shaded: [] };
   };
 
   const getReadConnections = async (

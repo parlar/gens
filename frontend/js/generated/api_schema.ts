@@ -811,6 +811,8 @@ export interface components {
      *     traced back to what was actually counted.
      */
     HetDensityBin: {
+      /** Coverage */
+      coverage?: number | null;
       /**
        * End
        * @description 1-based inclusive end
@@ -833,7 +835,9 @@ export interface components {
      *     size between 20 kb and 200 kb, because a bin empty of heterozygous sites is
      *     produced by a heterozygous deletion, by a run of homozygosity, by a coverage
      *     dropout and by ordinary mapping difficulty alike, and two of those are
-     *     ordinary biology. Reading this track needs the coverage track beside it. See
+     *     ordinary biology. Each bin carries the coverage measured over the same bin,
+     *     which separates the deletion from the run of homozygosity but not from the
+     *     dropout, and is a covariate rather than a call. See
      *     docs/research/baf_noise/results-panel-reference.md.
      */
     HetDensityTrack: {

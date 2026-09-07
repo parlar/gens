@@ -11,6 +11,7 @@ from gens.het_density import (
     chromosome_baseline,
     count_het_sites,
     leave_one_out_reference,
+    median_coverage_per_bin,
     panel_reference,
 )
 from gens.models.genomic import GenomeBuild
@@ -31,6 +32,14 @@ def write_baf(tmp_path, name, sites, chromosome="1"):
     pysam.tabix_compress(str(raw), path, force=True)
     pysam.tabix_index(path, preset="bed", force=True)
     return pysam.TabixFile(path)
+
+
+def write_coverage(tmp_path, name, points, chromosome="1"):
+    """A bgzipped, tabix-indexed Gens coverage bed: one row per stored point.
+
+    The same layout as the BAF track, which is why one reader serves both.
+    """
+    return write_baf(tmp_path, name, points, chromosome)
 
 
 def test_bin_range_covers_the_region_on_the_absolute_grid():
@@ -210,3 +219,62 @@ def test_frontend_and_backend_agree_on_the_window_limit():
     )
     assert match is not None, "HET_DENSITY_MAX_WINDOW is gone from constants.ts"
     assert int(match.group(1).replace("_", "")) == MAX_HET_DENSITY_WINDOW
+
+
+# --- coverage as the covariate the count cannot be read without -------------
+#
+# A bin empty of heterozygous sites is produced by a heterozygous deletion and
+# by a run of homozygosity alike. The first removes a copy and the second does
+# not, so the coverage over the same bin is what separates them. These check
+# that the covariate lands on the identical grid and says "not measured" when
+# it was not measured.
+
+
+def test_coverage_is_summarised_on_the_same_grid_as_the_counts(tmp_path):
+    tabix = write_coverage(
+        tmp_path,
+        "cov",
+        [(10, 0.0), (500, 0.2), (999, -0.2), (1500, -1.0), (2500, 0.1)],
+    )
+    assert median_coverage_per_bin(tabix, "1", 0, 2, bin_size=BIN) == [0.0, -1.0, 0.1]
+
+
+def test_an_unmeasured_bin_is_none_and_not_a_coverage_of_zero(tmp_path):
+    # Nothing stored and "the ratio here is zero" are different statements, and
+    # zero is an ordinary value on this scale: it means two copies. Reporting
+    # 0.0 for an unmeasured bin would paint a gap as a perfectly normal bin.
+    tabix = write_coverage(tmp_path, "gap", [(10, 0.3), (2500, 0.4)])
+    assert median_coverage_per_bin(tabix, "1", 0, 2, bin_size=BIN) == [0.3, None, 0.4]
+
+
+def test_a_missing_contig_reports_nothing_measured_rather_than_raising(tmp_path):
+    # A sample lacking a chromosome must still return its counts; losing the
+    # covariate is not a reason to fail the whole track.
+    tabix = write_coverage(tmp_path, "chr1only", [(10, 0.1)], chromosome="1")
+    assert median_coverage_per_bin(tabix, "22", 0, 1, bin_size=BIN) == [None, None]
+
+
+def test_the_median_is_not_moved_by_a_pile_up(tmp_path):
+    # The stored track is a per-site ratio with heavy tails: a few pile-up sites
+    # in a repeat drag a mean out of the range the bin actually sits in.
+    values = [(index * 10, -1.0) for index in range(1, 10)]
+    values += [(500, 40.0), (510, 40.0)]
+    tabix = write_coverage(tmp_path, "pileup", values)
+    assert median_coverage_per_bin(tabix, "1", 0, 0, bin_size=BIN) == [-1.0]
+
+
+def test_a_bin_keeps_its_coverage_whatever_window_asked_for_it(tmp_path):
+    # The same property the counts have. A covariate that moved with the view
+    # would recolour an event as the user zoomed onto it.
+    tabix = write_coverage(
+        tmp_path, "stable", [(x, x / 10000) for x in range(0, 5000, 100)]
+    )
+    wide = median_coverage_per_bin(tabix, "1", 0, 4, bin_size=BIN)
+    narrow = median_coverage_per_bin(tabix, "1", 2, 3, bin_size=BIN)
+    assert narrow == wide[2:4]
+
+
+def test_coverage_rejects_a_backwards_bin_range(tmp_path):
+    tabix = write_coverage(tmp_path, "backwards", [(10, 0.0)])
+    with pytest.raises(ValueError):
+        median_coverage_per_bin(tabix, "1", 5, 2, bin_size=BIN)

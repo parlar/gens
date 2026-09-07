@@ -1,6 +1,11 @@
 import { STYLE } from "../../constants";
-import { drawDotsScaled, getLinearScale } from "../../draw/render_utils";
+import {
+  drawBarsScaled,
+  drawDotsScaled,
+  getLinearScale,
+} from "../../draw/render_utils";
 import { drawBox, drawLabel } from "../../draw/shapes";
+import { COVERAGE_SHADE_STOPS } from "../../util/het_density";
 import { DataTrack } from "./base_tracks/data_track";
 
 export class DotTrack extends DataTrack {
@@ -67,7 +72,7 @@ export class DotTrack extends DataTrack {
     super.syncDimensions();
     super.drawStart();
 
-    const { dots, shaded } = renderData;
+    const { dots, bars, shaded } = renderData;
 
     const xRange = this.getXRange();
     const xScale = this.getXScale();
@@ -136,11 +141,77 @@ export class DotTrack extends DataTrack {
       }
     }
 
+    if (bars != null && bars.length > 0) {
+      // A binned series, drawn to the width of its bins. The baseline is the
+      // axis's own highlighted line where it has one, so a column grows from
+      // the value the reader is already comparing against.
+      const highlighted = this.getYAxis()?.highlightedYs;
+      const baselineValue = highlighted?.length ? highlighted[0] : 0;
+      drawBarsScaled(this.ctx, bars, xScale, yScale, {
+        baselineValue,
+        leftEdge: STYLE.yAxis.width,
+        rightEdge: this.dimensions.width,
+      });
+      this.drawCoverageShadeKey();
+    }
+
     drawDotsScaled(this.ctx, dotsTruncatedY, xScale, yScale, {
       size: STYLE.dotTrack.dotSize,
     });
 
     super.drawEnd();
+  }
+
+  /**
+   * A key for what the bar colours mean, drawn in the track itself.
+   *
+   * A colour encoding with no key is a colour encoding the reader has to guess,
+   * and the whole point of shading these bars is to answer a question without
+   * looking anywhere else. Skipped when the track is collapsed or too narrow,
+   * where drawing it would cover the data it explains.
+   */
+  private drawCoverageShadeKey() {
+    const KEY_WIDTH = 128;
+    const SWATCH = 8;
+    const MARGIN = 6;
+    if (
+      this.dimensions.width - STYLE.yAxis.width < KEY_WIDTH * 2 ||
+      this.dimensions.height < 60
+    ) {
+      return;
+    }
+
+    const right = this.dimensions.width - MARGIN;
+    const top = MARGIN;
+    const stops = COVERAGE_SHADE_STOPS;
+    const rampWidth = 48;
+    const rampLeft = right - rampWidth;
+
+    this.ctx.save();
+    // Left to right runs depleted to ordinary, matching the order of the stops.
+    const gradient = this.ctx.createLinearGradient(rampLeft, 0, right, 0);
+    gradient.addColorStop(0, stops[0].color);
+    gradient.addColorStop(1, stops[stops.length - 1].color);
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(rampLeft, top, rampWidth, SWATCH);
+    this.ctx.restore();
+
+    drawLabel(this.ctx, "coverage", rampLeft - 4, top + SWATCH / 2, {
+      textAlign: "right",
+      textBaseline: "middle",
+      textColor: STYLE.colors.darkGray,
+    });
+    drawLabel(this.ctx, stops[0].label, rampLeft, top + SWATCH + 9, {
+      textAlign: "left",
+      textColor: STYLE.colors.darkGray,
+    });
+    drawLabel(
+      this.ctx,
+      stops[stops.length - 1].label,
+      right,
+      top + SWATCH + 9,
+      { textAlign: "right", textColor: STYLE.colors.darkGray },
+    );
   }
 
   disconnectedCallback(): void {

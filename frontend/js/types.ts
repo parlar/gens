@@ -132,8 +132,40 @@ interface ShadedRange {
   label?: string;
 }
 
+/**
+ * A binned value drawn as a column from the axis baseline.
+ *
+ * Used where the data is one number per fixed genomic bin rather than a cloud
+ * of individual observations. Drawn as a dot, a bin becomes a single pixel at
+ * its midpoint, so a stretch of depleted bins reads as scattered specks; drawn
+ * to the bin's real width it reads as a block, and the width itself states the
+ * resolution instead of implying a smooth curve between midpoints.
+ */
+interface RenderBar {
+  /** 1-based inclusive bin start. */
+  start: number;
+  /** 1-based inclusive bin end. */
+  end: number;
+  /** The value. The column runs from the axis baseline to here. */
+  y: number;
+  color: string;
+  /**
+   * Draw the outline and leave the inside empty.
+   *
+   * For a bar whose colour would otherwise assert a covariate that was never
+   * measured. A filled neutral bar and an unmeasured one must not look alike.
+   */
+  outlineOnly?: boolean;
+}
+
 interface DotTrackData {
   dots: RenderDot[];
+  /**
+   * Drawn instead of dots when present. A track supplies one or the other, not
+   * both: they are two ways of showing the same axis, and overlaying them would
+   * double every value.
+   */
+  bars?: RenderBar[];
   shaded?: ShadedRange[];
 }
 

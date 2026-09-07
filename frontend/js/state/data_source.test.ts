@@ -35,7 +35,7 @@ describe("heterozygote density", () => {
   test("asks for a region at the limit", async () => {
     // The boundary is servable, so withholding it would hide a usable view.
     getHetDensity.mockResolvedValue({
-      bins: [{ start: 1, end: 20000, observed: 10 }],
+      bins: [{ start: 1, end: 20000, observed: 10, coverage: 0.05 }],
       baseline: 10,
       minimum_baseline: 5,
     });
@@ -44,8 +44,29 @@ describe("heterozygote density", () => {
 
     expect(getHetDensity).toHaveBeenCalledTimes(1);
     expect(data.shaded).toEqual([]);
-    expect(data.dots).toHaveLength(1);
-    expect(data.dots[0].y).toBe(0);
+    expect(data.bars).toHaveLength(1);
+    expect(data.bars[0].y).toBe(0);
+    // Bins are drawn to their own width, not as a point at the midpoint.
+    expect(data.bars[0].start).toBe(1);
+    expect(data.bars[0].end).toBe(20000);
+  });
+
+  test("carries the coverage measured over each bin into the drawn bar", async () => {
+    // Identical counts, opposite readings: one bin has lost a copy and one has
+    // not, and only the coverage says which.
+    getHetDensity.mockResolvedValue({
+      bins: [
+        { start: 1, end: 20000, observed: 0, coverage: -1.05 },
+        { start: 20001, end: 40000, observed: 0, coverage: 0.01 },
+      ],
+      baseline: 10,
+      minimum_baseline: 5,
+    });
+    const source = sourceOver(1_000_000);
+    const data = await source.getHetDensityData(sample, "1");
+
+    expect(data.bars[0].y).toBe(data.bars[1].y);
+    expect(data.bars[0].color).not.toBe(data.bars[1].color);
   });
 
   test("says so when the chromosome cannot support a scale", async () => {

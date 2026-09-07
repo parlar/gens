@@ -17,6 +17,7 @@ from gens.het_density import (
     bin_range,
     chromosome_baseline,
     count_het_sites,
+    median_coverage_per_bin,
 )
 from gens.models.genomic import Chromosome, GenomeBuild
 from gens.models.het_density import HetDensityBin, HetDensityTrack
@@ -105,6 +106,23 @@ def get_het_density(
             tabix, str(chromosome), first_bin, last_bin, bin_size, DEFAULT_HET_RANGE
         )
 
+    # The same bins, measured on the coverage track. A count on its own cannot
+    # tell a heterozygous deletion from a run of homozygosity; the coverage over
+    # the identical bin can, and reading it here means the two are aligned by
+    # construction rather than by the reader's eye. A sample whose coverage file
+    # is unreadable still gets its counts: the covariate is missing, which the
+    # client shows as such, and that is better than refusing the whole track.
+    try:
+        with TabixFile(str(sample.coverage_file)) as coverage_tabix:
+            coverage = median_coverage_per_bin(
+                coverage_tabix, str(chromosome), first_bin, last_bin, bin_size
+            )
+    except (OSError, ValueError):
+        LOG.warning(
+            "could not read coverage for %s from %s", sample_id, sample.coverage_file
+        )
+        coverage = [None] * len(observed)
+
     return HetDensityTrack(
         chromosome=str(chromosome),
         bin_size=bin_size,
@@ -116,6 +134,7 @@ def get_het_density(
                 start=(first_bin + index) * bin_size + 1,
                 end=(first_bin + index + 1) * bin_size,
                 observed=value,
+                coverage=coverage[index],
             )
             for index, value in enumerate(observed)
         ],

@@ -18,6 +18,13 @@ class HetDensityBin(RWModel):
     start: int = Field(ge=1, description="1-based inclusive start")
     end: int = Field(ge=1, description="1-based inclusive end")
     observed: int = Field(ge=0)
+    #: Median stored coverage log2 ratio over this same bin, or None where the
+    #: bin holds no stored coverage at all. It is here because the count cannot
+    #: be read without it: a bin empty of heterozygous sites is produced by a
+    #: heterozygous deletion and by a run of homozygosity alike, and the
+    #: coverage in the same bin is what separates the two. It does not separate
+    #: a deletion from a coverage dropout.
+    coverage: float | None = None
 
 
 class HetDensityTrack(RWModel):
@@ -28,7 +35,9 @@ class HetDensityTrack(RWModel):
     size between 20 kb and 200 kb, because a bin empty of heterozygous sites is
     produced by a heterozygous deletion, by a run of homozygosity, by a coverage
     dropout and by ordinary mapping difficulty alike, and two of those are
-    ordinary biology. Reading this track needs the coverage track beside it. See
+    ordinary biology. Each bin carries the coverage measured over the same bin,
+    which separates the deletion from the run of homozygosity but not from the
+    dropout, and is a covariate rather than a call. See
     docs/research/baf_noise/results-panel-reference.md.
     """
 
