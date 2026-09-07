@@ -34,6 +34,50 @@ const ZOOM_WINDOW_CACHE_MULTIPLIER = 5;
  * The identity check before deleting matters — by the time a failure lands,
  * the slot may already hold a newer request, and that one should stay.
  */
+/**
+ * The IndexedDB cache holds nothing the server cannot send again, so a browser
+ * that refuses to open it should cost the reader a slower load, not an empty
+ * track. Private windows and browsers set to block site data both refuse.
+ */
+let cacheRefusalReported = false;
+function reportCacheRefusal(action: string, error: unknown): void {
+  if (cacheRefusalReported) {
+    return;
+  }
+  // Once per session. The alternative is two lines per chromosome, which buries
+  // whatever else the console had to say.
+  cacheRefusalReported = true;
+  console.warn(
+    `Could not ${action} the Gens browser cache, so tracks will be fetched from ` +
+      `the server every time. Expected in a private window, or when the browser ` +
+      `is set to block site data.`,
+    error,
+  );
+}
+
+/** Read from the cache, treating a refusal as a miss. */
+async function cacheGet<T>(store: string, key: string): Promise<T | null> {
+  try {
+    return await idbGet<T>(IDB_CACHE.dbName, store, key);
+  } catch (error) {
+    reportCacheRefusal("read", error);
+    return null;
+  }
+}
+
+/** Write to the cache, treating a refusal as "this load is not remembered". */
+async function cacheSet<T>(
+  store: string,
+  key: string,
+  value: T,
+): Promise<void> {
+  try {
+    await idbSet(IDB_CACHE.dbName, store, key, value);
+  } catch (error) {
+    reportCacheRefusal("write", error);
+  }
+}
+
 export function cachedRequest<T>(
   store: Record<string, Promise<T>>,
   key: string,
@@ -475,8 +519,7 @@ export class API {
 
     return cachedRequest(this.transcriptCache, cacheKey, async () => {
       const serverTs = await this.getTranscriptUpdateTimestamp();
-      const cached = await idbGet<IDBTranscripts>(
-        IDB_CACHE.dbName,
+      const cached = await cacheGet<IDBTranscripts>(
         IDB_CACHE.transcriptsStore,
         cacheKey,
       );
@@ -499,7 +542,7 @@ export class API {
         query,
       )) as ApiSimplifiedTranscript[];
 
-      await idbSet(IDB_CACHE.dbName, IDB_CACHE.transcriptsStore, cacheKey, {
+      await cacheSet(IDB_CACHE.transcriptsStore, cacheKey, {
         transcripts,
         serverTimestamp: serverTs,
         cachedAt: new Date().toISOString(),

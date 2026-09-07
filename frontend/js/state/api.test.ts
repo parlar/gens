@@ -147,3 +147,44 @@ describe("startup", () => {
     expect(peak).toBeGreaterThan(1);
   });
 });
+
+describe("Transcripts when the browser will not give us IndexedDB", () => {
+  // Private windows, and any browser set to block site data, refuse to open an
+  // IndexedDB. That store is only a cache here — every transcript in it came
+  // from the server and can be fetched again — so a browser that refuses it
+  // should cost the reader a slower load, not an empty gene track. jsdom has no
+  // IndexedDB at all, so this environment is the blocked browser.
+  const mockGet = get as jest.Mock;
+  const transcripts = [{ chrom: "1", start: 100, end: 200, name: "GENE1" }];
+
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockGet.mockImplementation((url: string) => {
+      if (url.endsWith("tracks/updates")) {
+        return Promise.resolve({
+          track: "transcripts",
+          timestamp: "2026-01-01T00:00:00",
+        });
+      }
+      return Promise.resolve(transcripts);
+    });
+  });
+
+  test("still loads the genes from the server", async () => {
+    const api = new API(38, "https://example.org/gens/api/");
+    await expect(api.getTranscripts("1", true)).resolves.toEqual(transcripts);
+  });
+
+  test("asks the server again rather than caching nothing at all", async () => {
+    // Nothing was stored, so the second call has to go back to the server. The
+    // in-memory cache covers the repeat within one page, which is why this
+    // checks a fresh API rather than a second call on the same one.
+    const first = new API(38, "https://example.org/gens/api/");
+    const second = new API(38, "https://example.org/gens/api/");
+
+    await expect(first.getTranscripts("1", true)).resolves.toEqual(transcripts);
+    await expect(second.getTranscripts("1", true)).resolves.toEqual(
+      transcripts,
+    );
+  });
+});

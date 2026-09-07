@@ -6,7 +6,19 @@ function openDB(
   stores: string[],
 ): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    // A private window, or a browser set to block site data, has no
+    // indexedDB at all. Rejecting names the reason; touching it would throw a
+    // ReferenceError that says nothing about storage.
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("this browser context provides no IndexedDB"));
+      return;
+    }
     const request = indexedDB.open(dbName, version);
+    // Another tab holding the old version open blocks an upgrade. Without this
+    // the promise never settles, and a caller awaiting it waits for ever --
+    // worse than an error, because nothing downstream can recover from it.
+    request.onblocked = () =>
+      reject(new Error(`opening ${dbName} is blocked by another tab`));
     request.onupgradeneeded = () => {
       const db = request.result;
       stores.forEach((store) => {
