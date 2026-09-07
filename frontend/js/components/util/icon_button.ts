@@ -1,5 +1,6 @@
 import { COLORS, SIZES } from "../../constants";
 import { ShadowBaseElement } from "./shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -74,7 +75,7 @@ export class IconButton extends ShadowBaseElement {
   }
 
   attributeChangedCallback(name: string, _oldVal: string, newVal: string) {
-    const iconEl = this.root.querySelector("#icon") as HTMLElement;
+    const iconEl = requireElement(this.root, "#icon") as HTMLElement;
 
     if (name === "icon") {
       iconEl.className = `fas ${newVal}`;

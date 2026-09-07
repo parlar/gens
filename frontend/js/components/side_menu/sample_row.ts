@@ -61,7 +61,7 @@ export class SampleRow extends ShadowBaseElement {
 
     this.sampleLabelElem = requireElement(this.root, "#sample-label");
     this.caseLabelElem = requireElement(this.root, "#case-label");
-    this.removeElem = this.root.querySelector("#remove");
+    this.removeElem = requireElement(this.root, "#remove");
 
     this.sampleLabelElem.textContent = getSampleLabel(
       this.sample.sampleId,

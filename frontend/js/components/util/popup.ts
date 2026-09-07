@@ -1,6 +1,7 @@
 import { SIZES, STYLE } from "../../constants";
 import { getEntry } from "./menu_utils";
 import { ShadowBaseElement } from "./shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const style = STYLE.menu;
 
@@ -80,11 +81,11 @@ export class GensPopup extends ShadowBaseElement {
   }
 
   setContent(content: PopupContent) {
-    const header = this.root.querySelector("#header-text");
+    const header = requireElement(this.root, "#header-text");
     header.textContent = content.header;
     const infoEntries = content.info;
     if (infoEntries != undefined) {
-      const entriesContainer = this.root.querySelector("#entries");
+      const entriesContainer = requireElement(this.root, "#entries");
 
       for (const infoEntry of infoEntries) {
         const node = getEntry(infoEntry);
@@ -96,14 +97,14 @@ export class GensPopup extends ShadowBaseElement {
   connectedCallback(): void {
     super.connectedCallback();
 
-    const closeButton = this.root.querySelector("#close-popup");
+    const closeButton = requireElement(this.root, "#close-popup");
     closeButton.addEventListener("click", () => {
       this.remove();
     });
   }
 
   activateDrag(cleanup: () => void) {
-    const dragArea = this.root.querySelector(".drag-area") as HTMLElement;
+    const dragArea = requireElement(this.root, ".drag-area") as HTMLElement;
     setupDrag(this, dragArea, cleanup);
   }
 }

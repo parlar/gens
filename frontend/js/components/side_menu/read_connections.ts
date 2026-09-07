@@ -12,6 +12,7 @@ import {
 } from "../../util/read_connections";
 import { getSampleKey, prefixNts } from "../../util/utils";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 interface ConnectionSources {
   getSamples: () => Sample[];
@@ -109,12 +110,14 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
   connectedCallback() {
     super.connectedCallback();
     for (const id of ["sample", "interval", "kind", "mapq", "fragments"]) {
-      this.addElementListener(this.root.querySelector(`#${id}`), "change", () =>
-        this.render(),
+      this.addElementListener(
+        requireElement(this.root, `#${id}`),
+        "change",
+        () => this.render(),
       );
     }
     this.addElementListener(
-      this.root.querySelector("#refresh"),
+      requireElement(this.root, "#refresh"),
       "click",
       () => {
         this.requestKey = "";
@@ -122,14 +125,14 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
       },
     );
     this.addElementListener(
-      this.root.querySelector("#previous"),
+      requireElement(this.root, "#previous"),
       "click",
       () => {
         this.page -= 1;
         this.draw();
       },
     );
-    this.addElementListener(this.root.querySelector("#next"), "click", () => {
+    this.addElementListener(requireElement(this.root, "#next"), "click", () => {
       this.page += 1;
       this.draw();
     });
@@ -145,9 +148,14 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
 
   render() {
     if (!this.isConnected || !this.sources) return;
-    const sampleSelect = this.root.querySelector<HTMLSelectElement>("#sample");
-    const intervalSelect =
-      this.root.querySelector<HTMLSelectElement>("#interval");
+    const sampleSelect = requireElement<HTMLSelectElement>(
+      this.root,
+      "#sample",
+    );
+    const intervalSelect = requireElement<HTMLSelectElement>(
+      this.root,
+      "#interval",
+    );
     const samples = this.sources.getSamples();
     const previousSample =
       sampleSelect.value || getSampleKey(this.sources.getMainSample());
@@ -202,12 +210,14 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
       end: Math.floor(rawRegion.end),
     };
     const filters: EvidenceFilters = {
-      kind: this.root.querySelector<HTMLSelectElement>("#kind")
+      kind: requireElement<HTMLSelectElement>(this.root, "#kind")
         .value as EvidenceFilters["kind"],
-      minimum_mapq:
-        this.root.querySelector<HTMLInputElement>("#mapq").valueAsNumber,
-      minimum_fragments:
-        this.root.querySelector<HTMLInputElement>("#fragments").valueAsNumber,
+      minimum_mapq: requireElement<HTMLInputElement>(this.root, "#mapq")
+        .valueAsNumber,
+      minimum_fragments: requireElement<HTMLInputElement>(
+        this.root,
+        "#fragments",
+      ).valueAsNumber,
     };
     const key = JSON.stringify([sampleSelect.value, this.region, filters]);
     if (key === this.requestKey) return;
@@ -216,12 +226,12 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
     window.clearTimeout(this.timer);
     this.evidence = null;
     this.page = 0;
-    this.root.querySelector("#region").textContent =
+    requireElement(this.root, "#region").textContent =
       `${this.region.chrom}:${this.region.start.toLocaleString()}-${this.region.end.toLocaleString()} | GRCh${sample?.genomeBuild ?? ""}`;
-    this.root.querySelector("#source").textContent = "";
-    this.root.querySelector<HTMLElement>("#warning").hidden = true;
+    requireElement(this.root, "#source").textContent = "";
+    requireElement<HTMLElement>(this.root, "#warning").hidden = true;
     this.draw();
-    const status = this.root.querySelector("#status");
+    const status = requireElement(this.root, "#status");
     if (!sample) {
       status.textContent = "No samples selected.";
       return;
@@ -267,9 +277,9 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
         status.textContent = evidence.connections.length
           ? `${evidence.connections.length.toLocaleString()} ${evidence.connections.length === 1 ? "connection" : "connections"}`
           : "No connections match this interval and filters.";
-        this.root.querySelector("#source").textContent =
+        requireElement(this.root, "#source").textContent =
           `Source: ${evidence.source_label}`;
-        const warning = this.root.querySelector<HTMLElement>("#warning");
+        const warning = requireElement<HTMLElement>(this.root, "#warning");
         warning.hidden = !evidence.truncated;
         warning.textContent =
           "Partial results: the query limit was reached. Narrow the interval or filters.";
@@ -293,7 +303,7 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
       displayed.find((connection) => connection.id === this.selectedId) ??
       displayed[0];
     this.selectedId = selected?.id ?? "";
-    const rows = this.root.querySelector("#rows");
+    const rows = requireElement(this.root, "#rows");
     rows.replaceChildren();
     for (const connection of displayed) {
       const row = document.createElement("tr");
@@ -326,19 +336,19 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
       row.append(name, endpoints, support);
       rows.appendChild(row);
     }
-    this.root.querySelector<HTMLElement>("#pager").hidden = all.length === 0;
-    this.root.querySelector("#page-label").textContent =
+    requireElement<HTMLElement>(this.root, "#pager").hidden = all.length === 0;
+    requireElement(this.root, "#page-label").textContent =
       `${this.page * PAGE_SIZE + 1}-${Math.min((this.page + 1) * PAGE_SIZE, all.length)} of ${all.length}`;
-    this.root.querySelector<HTMLButtonElement>("#previous").disabled =
+    requireElement<HTMLButtonElement>(this.root, "#previous").disabled =
       this.page === 0;
-    this.root.querySelector<HTMLButtonElement>("#next").disabled =
+    requireElement<HTMLButtonElement>(this.root, "#next").disabled =
       (this.page + 1) * PAGE_SIZE >= all.length;
     this.drawArcs(displayed);
     this.drawDetails(selected);
   }
 
   private drawArcs(connections: ReadConnection[]) {
-    const chart = this.root.querySelector<SVGSVGElement>("#chart");
+    const chart = requireElement<SVGSVGElement>(this.root, "#chart");
     chart.replaceChildren();
     chart.style.display = connections.length ? "block" : "none";
     if (!connections.length) return;
@@ -433,7 +443,7 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
   }
 
   private drawDetails(connection?: ReadConnection) {
-    const details = this.root.querySelector("#details");
+    const details = requireElement(this.root, "#details");
     details.replaceChildren();
     if (!connection) return;
     const heading = document.createElement("h3");
@@ -473,7 +483,8 @@ export class ReadConnectionsPanel extends ShadowBaseElement {
       button.appendChild(icon);
       button.disabled = !this.sources.canNavigate(endpoint);
       button.onclick = () => {
-        this.root.querySelector<HTMLSelectElement>("#interval").value = "view";
+        requireElement<HTMLSelectElement>(this.root, "#interval").value =
+          "view";
         this.sources.navigate(endpoint);
       };
       row.append(label, button);

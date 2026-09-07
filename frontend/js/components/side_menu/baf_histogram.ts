@@ -113,7 +113,7 @@ export class BafHistogramPanel extends ShadowBaseElement {
     this.binsSelect = requireElement(this.root, "#bins");
     this.status = requireElement(this.root, "#status");
     this.validation = requireElement(this.root, "#validation");
-    this.chart = this.root.querySelector("#chart");
+    this.chart = requireElement(this.root, "#chart");
     this.exportButton = requireElement(this.root, "#export");
     this.customField = requireElement(this.root, "#custom-field");
     this.customInput = requireElement(this.root, "#custom-region");
@@ -135,7 +135,7 @@ export class BafHistogramPanel extends ShadowBaseElement {
       this.addElementListener(input, "change", () => this.draw());
     }
     this.addElementListener(
-      this.root.querySelector("#refresh"),
+      requireElement(this.root, "#refresh"),
       "click",
       () => {
         this.requestKey = "";
@@ -234,7 +234,7 @@ export class BafHistogramPanel extends ShadowBaseElement {
         this.chart.replaceChildren();
         this.status.textContent = "";
         this.exportButton.disabled = true;
-        this.root.querySelector("#region").textContent = "";
+        requireElement(this.root, "#region").textContent = "";
         return;
       }
       rawRegion = parsed.region;
@@ -260,7 +260,7 @@ export class BafHistogramPanel extends ShadowBaseElement {
     this.sample = samples.find(
       (sample) => getSampleKey(sample) === this.sampleSelect.value,
     );
-    this.root.querySelector("#region").textContent =
+    requireElement(this.root, "#region").textContent =
       `${this.region.chrom}:${this.region.start.toLocaleString()}-${this.region.end.toLocaleString()} | GRCh${this.sample?.genomeBuild ?? ""}`;
     const key = JSON.stringify([this.sampleSelect.value, this.region]);
     if (key === this.requestKey) {

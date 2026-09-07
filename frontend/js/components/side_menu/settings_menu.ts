@@ -396,15 +396,15 @@ export class SettingsMenu extends ShadowBaseElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.annotSelect = this.root.querySelector("#annotation-select");
-    this.geneListSelect = this.root.querySelector("#gene-lists-select");
-    this.colorBySelect = this.root.querySelector("#color-by-select");
-    this.sampleSelect = this.root.querySelector("#sample-select");
-    this.mainSampleSelect = this.root.querySelector("#main-sample-select");
+    this.annotSelect = requireElement(this.root, "#annotation-select");
+    this.geneListSelect = requireElement(this.root, "#gene-lists-select");
+    this.colorBySelect = requireElement(this.root, "#color-by-select");
+    this.sampleSelect = requireElement(this.root, "#sample-select");
+    this.mainSampleSelect = requireElement(this.root, "#main-sample-select");
     this.tracksOverview = requireElement(this.root, "#tracks-overview");
     this.samplesOverview = requireElement(this.root, "#samples-overview");
     this.highlightsOverview = requireElement(this.root, "#highlights-overview");
-    this.addSampleButton = this.root.querySelector("#add-sample");
+    this.addSampleButton = requireElement(this.root, "#add-sample");
     this.applyDotTrackHeightsButton = requireElement(
       this.root,
       "#apply-dot-track-heights",
@@ -414,25 +414,32 @@ export class SettingsMenu extends ShadowBaseElement {
       "#apply-band-track-height",
     );
 
-    this.exportProfileSettingsButton = this.root.querySelector(
+    this.exportProfileSettingsButton = requireElement(
+      this.root,
       "#export-settings",
     ) as IconButton;
-    this.importProfileSettingsButton = this.root.querySelector(
+    this.importProfileSettingsButton = requireElement(
+      this.root,
       "#import-settings",
     ) as IconButton;
-    this.importProfileSettingsInput = this.root.querySelector(
+    this.importProfileSettingsInput = requireElement(
+      this.root,
       "#import-settings-input",
     ) as HTMLInputElement;
-    this.applyDisplayAliasesButton = this.root.querySelector(
+    this.applyDisplayAliasesButton = requireElement(
+      this.root,
       "#apply-display-aliases",
     ) as IconButton;
-    this.caseDisplayAliasInput = this.root.querySelector(
+    this.caseDisplayAliasInput = requireElement(
+      this.root,
       "#case-display-alias",
     ) as HTMLInputElement;
-    this.sampleAliasControls = this.root.querySelector(
+    this.sampleAliasControls = requireElement(
+      this.root,
       "#sample-alias-controls",
     ) as HTMLDivElement;
-    this.caseDisplayAliasInfo = this.root.querySelector(
+    this.caseDisplayAliasInfo = requireElement(
+      this.root,
       "#case-display-alias-info",
     ) as HTMLDivElement;
 
@@ -446,9 +453,13 @@ export class SettingsMenu extends ShadowBaseElement {
     );
     this.variantThresholdInput = requireElement(this.root, "#variant-filter");
     this.applyMainSample = requireElement(this.root, "#apply-main-sample");
-    this.resetLayoutButton = this.root.querySelector("#reset-layout");
-    this.clearCachedDataButton = this.root.querySelector("#clear-cached-data");
-    this.resetLayoutInfo = this.root.querySelector(
+    this.resetLayoutButton = requireElement(this.root, "#reset-layout");
+    this.clearCachedDataButton = requireElement(
+      this.root,
+      "#clear-cached-data",
+    );
+    this.resetLayoutInfo = requireElement(
+      this.root,
       "#reset-layout-info",
     ) as HTMLDivElement;
 

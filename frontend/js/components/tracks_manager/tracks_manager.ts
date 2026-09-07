@@ -5,6 +5,7 @@ import { GensSession } from "../../state/gens_session";
 import { DataTrack } from "../tracks/base_tracks/data_track";
 import { TrackView } from "./track_view";
 import { ChromosomeView } from "./chromosome_view";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -43,8 +44,8 @@ export class TracksManager extends ShadowBaseElement {
       this.onChange({ resized: true });
     });
 
-    this.trackView = this.root.querySelector("#track-view");
-    this.chromosomeView = this.root.querySelector("#chromosome-view");
+    this.trackView = requireElement(this.root, "#track-view");
+    this.chromosomeView = requireElement(this.root, "#chromosome-view");
   }
 
   async initializeTrackView(

@@ -71,10 +71,10 @@ export class TrackRow extends ShadowBaseElement {
     super.connectedCallback();
 
     this.label = requireElement(this.root, "#label");
-    this.up = this.root.querySelector("#up");
-    this.down = this.root.querySelector("#down");
-    this.toggleHide = this.root.querySelector("#hide");
-    this.toggleExpand = this.root.querySelector("#collapse");
+    this.up = requireElement(this.root, "#up");
+    this.down = requireElement(this.root, "#down");
+    this.toggleHide = requireElement(this.root, "#hide");
+    this.toggleExpand = requireElement(this.root, "#collapse");
 
     this.label.textContent = this.track.trackLabel;
     this.label.title = this.track.trackLabel;
