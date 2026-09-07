@@ -88,6 +88,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/homology": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Region Homology
+     * @description Segmental duplications overlapping the region, longest first.
+     *
+     *     The identity is UCSC's own, from their alignment; Gens aligns nothing. The
+     *     catalogue holds alignments of at least a kilobase at 90% identity or better,
+     *     so shorter homology, including the Alu-length pairs behind many small
+     *     deletions, is simply not in it.
+     */
+    get: operations["get_region_homology_api_homology_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/sample-tracks/annotations": {
     parameters: {
       query?: never;
@@ -853,6 +878,66 @@ export interface components {
       het_range: [number, number];
       /** Minimum Baseline */
       minimum_baseline: number;
+    };
+    /**
+     * HomologyPair
+     * @description One catalogued near-identical pair, seen from one of its two sides.
+     *
+     *     UCSC stores every alignment from both sides, so the pairs overlapping a
+     *     region already name that region's partners and nothing has to be looked up
+     *     in reverse.
+     */
+    HomologyPair: {
+      /** Aligned Bases */
+      aligned_bases: number;
+      chrom: components["schemas"]["Chromosome"];
+      /**
+       * End
+       * @description 1-based inclusive end
+       */
+      end: number;
+      /** Identity */
+      identity: number;
+      /**
+       * Orientation
+       * @enum {string}
+       */
+      orientation: "direct" | "inverted";
+      partner_chrom: components["schemas"]["Chromosome"];
+      /**
+       * Partner End
+       * @description 1-based inclusive end
+       */
+      partner_end: number;
+      /**
+       * Partner Start
+       * @description 1-based inclusive start
+       */
+      partner_start: number;
+      /**
+       * Start
+       * @description 1-based inclusive start
+       */
+      start: number;
+    };
+    /**
+     * HomologyRegions
+     * @description The catalogued pairs overlapping one region.
+     *
+     *     Descriptive, and bounded by the catalogue: it holds alignments of at least
+     *     a kilobase at 90% identity or better, so an empty response means no pair
+     *     was catalogued here, not that the sequence is unique. Nothing in it is a
+     *     call about what produced any event in view.
+     */
+    HomologyRegions: {
+      /** Chromosome */
+      chromosome: string;
+      /** End */
+      end: number;
+      /** Pairs */
+      pairs: components["schemas"]["HomologyPair"][];
+      /** Start */
+      start: number;
     };
     /** MetaEntry */
     MetaEntry: {
@@ -1641,6 +1726,40 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PanelGenes"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_region_homology_api_homology_get: {
+    parameters: {
+      query: {
+        genome_build: components["schemas"]["GenomeBuild"];
+        chromosome: components["schemas"]["Chromosome"];
+        start?: number;
+        end: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HomologyRegions"];
         };
       };
       /** @description Validation Error */

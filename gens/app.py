@@ -33,7 +33,14 @@ from .auth import (
 )
 from .config import AuthMethod, settings
 from .errors import generic_abort_error, generic_exception_error, sample_not_found
-from .routes import annotations, base, gene_lists, sample, sample_annotations
+from .routes import (
+    annotations,
+    base,
+    gene_lists,
+    homology,
+    sample,
+    sample_annotations,
+)
 
 dictConfig(
     {
@@ -260,6 +267,7 @@ def add_api_routers(app: FastAPI, dependencies: list[Any] | None = None) -> None
         sample_annotations.router, prefix=api_prefix, dependencies=dependencies
     )
     app.include_router(gene_lists.router, prefix=api_prefix, dependencies=dependencies)
+    app.include_router(homology.router, prefix=api_prefix, dependencies=dependencies)
 
 
 def initialize_extensions(app: Flask) -> None:

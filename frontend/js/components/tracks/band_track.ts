@@ -129,7 +129,10 @@ export class BandTrack extends DataTrack {
       const renderBand = Object.create(band);
       renderBand.y1 = yRange[0];
       renderBand.y2 = yRange[1];
-      renderBand.edgeColor = STYLE.bandTrack.edgeColor;
+      // A band that chose its own edge keeps it. This used to overwrite every
+      // band's edgeColor unconditionally, which made the field impossible to
+      // use from outside.
+      renderBand.edgeColor = band.edgeColor ?? STYLE.bandTrack.edgeColor;
 
       return renderBand;
     });
@@ -203,6 +206,20 @@ function drawBand(
   if (!isTranscript || !showDetails) {
     ctx.fillStyle = band.color;
     ctx.fillRect(xPxStart, y1, width, height);
+    // Outlined only when the band asked for it by setting a width. Bands have
+    // always carried an edgeColor that nothing drew, so stroking every band
+    // here would silently restyle every existing track.
+    if (band.edgeWidth != null && band.edgeWidth > 0) {
+      ctx.strokeStyle = band.edgeColor ?? STYLE.bandTrack.edgeColor;
+      ctx.lineWidth = band.edgeWidth;
+      const inset = band.edgeWidth / 2;
+      ctx.strokeRect(
+        xPxStart + inset,
+        y1 + inset,
+        Math.max(0, width - band.edgeWidth),
+        Math.max(0, height - band.edgeWidth),
+      );
+    }
     const box = { x1: xPxStart, x2: xPxStart + width, y1, y2 };
     const hoverBox: HoverBox = { box, label: band.hoverInfo, element: band };
     hoverBoxes.push(hoverBox);
@@ -239,10 +256,14 @@ function drawBand(
     });
 
     hoverBoxes.push(...getIntronHoverBoxes(band, midY, xScale));
+  }
 
-    if (isExpanded && band.label != null) {
-      drawTrackLabel(ctx, screenRange, xPxRange, band, y2);
-    }
+  // Outside the transcript branch, where it used to sit: a band that carries a
+  // label got one only if it happened to be a transcript, so every other band
+  // set a label that nothing ever drew. Still only on an expanded track and
+  // only at a zoom that shows detail, so a wide view does not fill with text.
+  if (isExpanded && showDetails && band.label != null) {
+    drawTrackLabel(ctx, screenRange, xPxRange, band, y2);
   }
 
   return hoverBoxes;

@@ -88,6 +88,7 @@ export const TRACK_IDS = {
   variants: "variants",
   sample_annot: "sample_annot",
   genes: "genes",
+  homology: "homology",
   annot: "annot",
 };
 
@@ -315,4 +316,10 @@ export const HET_DENSITY_Y_RANGE: [number, number] = [-4, 4];
 // above this the frontend says the track is unavailable instead of asking.
 // tests/test_het_density.py asserts the two numbers still agree.
 export const HET_DENSITY_MAX_WINDOW = 20_000_000;
+
+// The homology endpoint refuses a wider region: nothing is read off a whole
+// chromosome of overlapping pairs, and the query would return tens of thousands
+// of records to draw on top of one another.
+// tests/test_homology_window.py asserts the two numbers still agree.
+export const HOMOLOGY_MAX_WINDOW = 20_000_000;
 export const DEFAULT_COV_Y_RANGE: [number, number] = [-3, 3];

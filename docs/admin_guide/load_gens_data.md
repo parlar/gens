@@ -32,6 +32,46 @@ gens load transcripts --file Homo_sapiens.GRCh38.113.gtf.gz --mane MANE.GRCh38.v
 
 Annotation tracks can be loaded into the database as `bed`, `aed`, or `tsv`.
 
+## Sequence homology
+
+Optional. Loads UCSC's catalogue of segmental duplications, which lets the viewer
+say whether a region is near-identical to somewhere else, how similar, in which
+orientation, and where the partner is.
+
+```bash
+curl --silent --output ./genomicSuperDups.txt.gz \
+  https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/genomicSuperDups.txt.gz
+gens load homology --file genomicSuperDups.txt.gz -b 38
+```
+
+Reloading replaces the catalogue for that build rather than adding to it, so
+picking up a new UCSC release is just running the command again. Use the
+`hg19` path and `-b 37` for build 37. The file carries no marker saying which
+build it is for, so passing the wrong `-b` stores coordinates that resolve to
+the wrong place with nothing to warn you.
+
+Without this, the Homology track is empty. Nothing else changes.
+
+### What it can and cannot tell you
+
+A structural variant is not placed at random. Where two stretches of sequence are
+near-identical, recombination can pair the wrong two copies and delete,
+duplicate or invert what lies between them. So an event whose breakpoints sit
+inside such a pair, and whose discordant reads point at that pair's partner, has
+an explanation the coverage alone does not give. The track marks that case: a
+band is outlined and labelled `reads point here` when a read connection in view
+reaches the partner of the pair it sits in.
+
+Three limits worth stating.
+
+- The percent identity is UCSC's own, from their alignment. Gens aligns nothing.
+- The catalogue holds alignments of at least a kilobase at 90% identity or
+  better. Shorter homology, including the Alu-length pairs behind many small
+  deletions, is not in it, so an empty track means nothing was catalogued here,
+  not that the sequence is unique.
+- Nothing in the track is a call. "The reads reach this partner" is an
+  observation about two coordinates, not a claim that recombination happened.
+
 ## Loading samples into Gens
 
 Each sample requires a coverage file and a BAF file. Both files must be gzip-compressed data files with matching tabix index files (`.tbi`). Provide a sample ID (`--sample-id`), case ID (`--case-id`), and genome build (`--genome-build` or `-b`) when loading.

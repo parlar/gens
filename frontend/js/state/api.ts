@@ -629,6 +629,31 @@ export class API {
     ) as Promise<ApiHetDensityTrack>;
   }
 
+  /**
+   * Catalogued sequence homology overlapping a region.
+   *
+   * Not sample-specific and not cached per sample: the catalogue is the same
+   * for every sample on a genome build, and what differs between samples is the
+   * connections it gets read beside.
+   */
+  getHomology(
+    genomeBuild: number,
+    chrom: string,
+    xRange: Rng,
+    signal?: AbortSignal,
+  ): Promise<ApiHomologyRegions> {
+    return get(
+      new URL("homology", this.apiURI).href,
+      {
+        genome_build: genomeBuild,
+        chromosome: chrom,
+        start: Math.max(1, Math.floor(xRange[0])),
+        end: Math.ceil(xRange[1]),
+      },
+      signal,
+    ) as Promise<ApiHomologyRegions>;
+  }
+
   async getBafHistogramData(
     id: SampleIdentifier,
     region: Region,

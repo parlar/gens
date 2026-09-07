@@ -12,6 +12,7 @@ from .collections import (
     ANNOTATION_TRACKS_COLLECTION,
     ANNOTATIONS_COLLECTION,
     CHROMSIZES_COLLECTION,
+    HOMOLOGY_COLLECTION,
     SAMPLE_ANNOTATION_TRACKS_COLLECTION,
     SAMPLE_ANNOTATIONS_COLLECTION,
     TRANSCRIPTS_COLLECTION,
@@ -20,6 +21,20 @@ from .collections import (
 LOG = logging.getLogger(__name__)
 
 INDEXES = {
+    HOMOLOGY_COLLECTION: [
+        # Every query fixes the build and the contig exactly and ranges only
+        # over the position, so those two lead.
+        IndexModel(
+            [
+                ("genome_build", ASCENDING),
+                ("chrom", ASCENDING),
+                ("start", ASCENDING),
+                ("end", ASCENDING),
+            ],
+            name="homology_region",
+            background=True,
+        ),
+    ],
     ANNOTATIONS_COLLECTION: [
         # Every annotation query names one track, so the track has to lead the
         # index. Without it a region query walks the matching positions in

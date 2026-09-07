@@ -148,6 +148,29 @@ export function getTrack(
       getColorBands,
       getXRange,
     );
+  } else if (setting.trackType == "homology") {
+    // The main sample is read here, on every fetch, rather than stored on the
+    // setting when the track was built. The catalogue is the same for every
+    // sample; only the reads checked against it differ, and a sample baked in
+    // at build time would keep marking the bands with a sample the heading no
+    // longer names.
+    const getHomologyBands = () =>
+      dataSource.getHomologyBands(
+        session.getMainSample(),
+        getChromosome(),
+        getXRange(),
+      );
+    track = getBandTrack(
+      session,
+      dataSource,
+      setting,
+      getHomologyBands,
+      showTrackContextMenu,
+      setIsExpanded,
+      setExpandedHeight,
+      getColorBands,
+      getXRange,
+    );
   } else if (setting.trackType == "gene") {
     const getGeneBands = () => dataSource.getTranscriptBands(getChromosome());
     track = getBandTrack(

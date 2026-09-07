@@ -65,6 +65,8 @@ type ApiSample = ApiSchemas["SampleInfo"];
 type SampleMetaValue = ApiSchemas["MetaValue"];
 type SampleMetaEntry = ApiSchemas["MetaEntry"];
 type ApiScoutSample = ApiSchemas["ScoutSampleCall"];
+type ApiHomologyPair = ApiSchemas["HomologyPair"];
+type ApiHomologyRegions = ApiSchemas["HomologyRegions"];
 
 // Despite the name, these two are not response bodies and so are not
 // generated. The coverage endpoint returns ApiSchemas["GenomeCoverage"], which
@@ -323,6 +325,12 @@ interface RenderDataSource {
     xRange: Rng,
   ) => Promise<ConnectionsTrackData>;
   hasReadConnections: (id: SampleIdentifier) => Promise<boolean>;
+
+  getHomologyBands: (
+    id: SampleIdentifier,
+    chrom: string,
+    xRange: Rng,
+  ) => Promise<RenderBand[]>;
 
   getTranscriptBands: (chrom: string) => Promise<RenderBand[]>;
   getTranscriptDetails: (geneId: string) => Promise<ApiGeneDetails>;
@@ -629,6 +637,7 @@ type TrackType =
   | "dot-hetdensity"
   | "connections"
   | "gene"
+  | "homology"
   | "position"
   | "gene-list";
 

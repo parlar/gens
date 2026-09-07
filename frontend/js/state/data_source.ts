@@ -2,12 +2,14 @@ import {
   ANNOTATIONS_RESPONSE_CAP,
   HET_DENSITY_MAX_WINDOW,
   HET_DENSITY_Y_RANGE,
+  HOMOLOGY_MAX_WINDOW,
   STYLE,
   VARIANT_COLORS,
   ZOOM_STEPS,
 } from "../constants";
 import { toTrackData } from "../util/connection_arcs";
 import { hetDensityBars } from "../util/het_density";
+import { homologyBands } from "../util/homology";
 import { EVIDENCE_WINDOW } from "../util/read_connections";
 import { prefixNts, transformMap } from "../util/utils";
 import { API } from "./api";
@@ -187,6 +189,37 @@ export function getRenderDataSource(
     return evidence !== null;
   };
 
+  /**
+   * Catalogued homology for the view, marked where the sample's own reads agree.
+   *
+   * The catalogue is the same for every sample; what makes it worth reading is
+   * whether the discordant reads of the sample in front of you point into a
+   * pair's partner. Both halves are fetched here so the reader is not left to
+   * compare two tracks by coordinate.
+   *
+   * Connections are optional evidence, not a precondition. They are served only
+   * over a much narrower window than the catalogue, and a sample may have no
+   * BEDPE at all; in either case the pairs are still worth showing, unmarked,
+   * because homology bears on how far the coverage can be trusted whether or
+   * not any read supports an event.
+   */
+  const getHomologyBands = async (
+    id: SampleIdentifier,
+    chrom: string,
+    xRange: Rng,
+  ): Promise<RenderBand[]> => {
+    if (xRange[1] - xRange[0] > HOMOLOGY_MAX_WINDOW) {
+      return [];
+    }
+    const [homology, connections] = await Promise.all([
+      api.getHomology(id.genomeBuild, chrom, xRange),
+      getReadConnections(id, chrom, xRange).catch(
+        () => ({ connections: [] }) as ConnectionsTrackData,
+      ),
+    ]);
+    return homologyBands(homology.pairs, connections.connections, id.sampleId);
+  };
+
   const getTranscriptBands = async (chrom: string): Promise<RenderBand[]> => {
     const onlyCanonical = true;
     const transcriptsRaw = await api.getTranscripts(chrom, onlyCanonical);
@@ -273,6 +306,7 @@ export function getRenderDataSource(
     getBafData,
     getHetDensityData,
     getReadConnections,
+    getHomologyBands,
     hasReadConnections,
     getTranscriptBands,
     getTranscriptDetails: (id: string) => api.getTranscriptDetails(id),

@@ -95,7 +95,43 @@ export async function syncDataTrackSettings(
     returnTrackSettings.push(geneTrackSettings);
   }
 
+  if (
+    !returnTrackSettings.find((track) => track.trackId == TRACK_IDS.homology)
+  ) {
+    returnTrackSettings.push(getHomologyTrackSettings());
+  }
+
   return { settings: returnTrackSettings, samples: [...samples] };
+}
+
+/**
+ * Catalogued sequence homology for the region.
+ *
+ * One track rather than one per sample: the catalogue is the same for every
+ * sample on a genome build. What differs is whose discordant reads are checked
+ * against it, and that is read from the session at fetch time rather than
+ * stored here, so the marking follows the main sample instead of whichever
+ * sample happened to be main when the track was built.
+ *
+ * Expanded by default, because the band's label is the whole payload: the
+ * partner locus, the percent identity, the orientation, and whether the reads
+ * in view point into that partner. Band labels are only drawn when a track is
+ * expanded, so collapsed this track says a region is repetitive and nothing
+ * else. A view rarely carries more than a handful of pairs, so the room it
+ * takes is small.
+ */
+export function getHomologyTrackSettings(): DataTrackSettings {
+  return {
+    trackId: TRACK_IDS.homology,
+    trackLabel: "Homology",
+    trackType: "homology",
+    height: {
+      collapsedHeight: USED_TRACK_HEIGHTS.trackView.collapsedBand,
+    },
+    showLabelWhenCollapsed: true,
+    isExpanded: true,
+    isHidden: false,
+  };
 }
 
 export function getGeneTrackSettings() {

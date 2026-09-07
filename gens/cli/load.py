@@ -20,11 +20,14 @@ from gens.cli.util.util import ChoiceType, resolve_existing_path
 from gens.crud.annotations import (
     register_data_update,
 )
+from gens.crud.homology import replace_homology
 from gens.crud.transcripts import create_transcripts
 from gens.db.collections import (
     CHROMSIZES_COLLECTION,
+    HOMOLOGY_COLLECTION,
     TRANSCRIPTS_COLLECTION,
 )
+from gens.homology import parse_super_dups
 from gens.load.chromosomes import build_chromosomes_obj, get_assembly_info
 from gens.load.transcripts import build_transcripts
 from gens.models.genomic import GenomeBuild
@@ -396,3 +399,34 @@ def chromosomes(genome_build: GenomeBuild, file: Path | None, timeout: int) -> N
     register_data_update(db, CHROMSIZES_COLLECTION)
     # build cytogenetic data
     click.secho("Finished updating chromosome sizes ✔", fg="green")
+
+
+@load.command()
+@click.option(
+    "-f",
+    "--file",
+    required=True,
+    help="UCSC genomicSuperDups table for this build (.txt or .txt.gz)",
+)
+@click.option(
+    "-b",
+    "--genome-build",
+    type=ChoiceType(GenomeBuild),
+    required=True,
+    help="Genome build",
+)
+def homology(file: str, genome_build: GenomeBuild) -> None:
+    """Load catalogued sequence homology from UCSC's segmental duplications.
+
+    Download the table for the build being loaded, for example
+    https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/genomicSuperDups.txt.gz
+
+    The build is not read from the file, which carries no such marker, so
+    loading an hg19 table under build 38 would store coordinates that resolve to
+    the wrong place with nothing to warn of it. Pass the build the file is for.
+    """
+    db = cli_db.get_cli_db([HOMOLOGY_COLLECTION])
+    LOG.info("Reading %s", file)
+    with open_text_or_gzip(file) as file_fh:
+        stored = replace_homology(db, genome_build, parse_super_dups(file_fh))
+    click.secho(f"Stored {stored} homologous pairs ✔", fg="green")
