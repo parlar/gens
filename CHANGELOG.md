@@ -13,7 +13,7 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
-- Draw the heterozygote density track as bars over each 20 kb bin instead of one dot per bin, and shade every bar by the coverage measured over that same bin. A bin empty of heterozygous sites is produced by a heterozygous deletion and by a run of homozygosity alike, and the shading is what separates them; it does not separate a deletion from a coverage dropout, and it carries no threshold and no call
+- Draw the heterozygote density track as bars over each 20 kb bin instead of one dot per bin, shade every bar by the coverage measured over that same bin, and repeat that shade as an unbroken strip under the plot so a bin whose count is ordinary still shows its coverage. A bin empty of heterozygous sites is produced by a heterozygous deletion and by a run of homozygosity alike, and the shading is what separates them; it does not separate a deletion from a coverage dropout, and it carries no threshold and no call
 - Document where Gens' trust boundary is: it authenticates but does not authorize, so every logged-in user can read every sample, and the `roles` field is never consulted
 - Require Python 3.11 or later, which is what the code has needed since it started using `StrEnum`; the package advertised 3.8, so it would install onto interpreters that cannot import it. The test suite now runs on 3.11 as well as 3.12
 - Let the CI typecheck and ESLint jobs fail a pull request instead of only reporting; both already pass on `dev`

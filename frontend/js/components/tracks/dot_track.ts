@@ -1,12 +1,21 @@
 import { STYLE } from "../../constants";
 import {
   drawBarsScaled,
+  drawBinShadeStrip,
   drawDotsScaled,
   getLinearScale,
 } from "../../draw/render_utils";
 import { drawBox, drawLabel } from "../../draw/shapes";
 import { COVERAGE_SHADE_STOPS } from "../../util/het_density";
 import { DataTrack } from "./base_tracks/data_track";
+
+/**
+ * Height of the strip repeating each bin's shade under the plot.
+ *
+ * It lives in the track's bottom padding, which is SIZES.s, so it fits without
+ * taking room from the data.
+ */
+const SHADE_STRIP_HEIGHT = 5;
 
 export class DotTrack extends DataTrack {
   startExpanded: boolean;
@@ -149,6 +158,15 @@ export class DotTrack extends DataTrack {
       const baselineValue = highlighted?.length ? highlighted[0] : 0;
       drawBarsScaled(this.ctx, bars, xScale, yScale, {
         baselineValue,
+        leftEdge: STYLE.yAxis.width,
+        rightEdge: this.dimensions.width,
+      });
+      // In the padding below the plotting area, so it never covers a bar and a
+      // bar never covers it. A bin whose height lands on the baseline shows its
+      // colour here and nowhere else.
+      drawBinShadeStrip(this.ctx, bars, xScale, {
+        top: this.dimensions.height - SHADE_STRIP_HEIGHT - 1,
+        height: SHADE_STRIP_HEIGHT,
         leftEdge: STYLE.yAxis.width,
         rightEdge: this.dimensions.width,
       });

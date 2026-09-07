@@ -236,6 +236,58 @@ export function drawBarsScaled(
   ctx.restore();
 }
 
+/**
+ * The bars' colours again, as an unbroken strip of full-width segments.
+ *
+ * A bar carries its colour in its own body, so a bin whose value sits on the
+ * baseline has nowhere to show one: it draws as a hairline. That is exactly the
+ * bin worth seeing — a bin where the shading disagrees with the height is a bin
+ * where something is happening that the height alone does not report. Measured
+ * on chr11:49,688,000-49,736,000, the bin holding the deletion's right
+ * breakpoint is 80% deleted, and the nine heterozygous sites in the 4 kb that
+ * survived put its bar back on the baseline, one pixel tall and strongly
+ * coloured.
+ *
+ * The strip does not repeat the height, so it adds no second reading of the
+ * same number: it is the covariate on its own, at a constant size, across every
+ * bin in view.
+ */
+export function drawBinShadeStrip(
+  ctx: CanvasRenderingContext2D,
+  bars: RenderBar[],
+  xScale: Scale,
+  settings: {
+    top: number;
+    height: number;
+    leftEdge: number;
+    rightEdge: number;
+  },
+) {
+  const { top, height, leftEdge, rightEdge } = settings;
+  if (height <= 0) {
+    return;
+  }
+
+  ctx.save();
+  for (const bar of bars) {
+    // No gap between segments: a run of low-coverage bins should read as one
+    // stretch, which is the statement the strip exists to make.
+    const x1 = Math.max(leftEdge, xScale(bar.start));
+    const x2 = Math.min(rightEdge, xScale(bar.end));
+    if (x2 <= x1) {
+      continue;
+    }
+    if (bar.outlineOnly) {
+      // Nothing was measured here, so nothing is claimed. Left blank rather
+      // than filled neutral, which would assert ordinary coverage.
+      continue;
+    }
+    ctx.fillStyle = bar.color;
+    ctx.fillRect(x1, top, x2 - x1, height);
+  }
+  ctx.restore();
+}
+
 export function rgbArrayToString(rgbArray: number[]): string {
   return `rgb(${rgbArray[0]},${rgbArray[1]},${rgbArray[2]})`;
 }
