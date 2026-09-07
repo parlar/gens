@@ -21,3 +21,18 @@ export function requireElement<T extends Element>(
   }
   return found;
 }
+
+/**
+ * The shadow root a component attaches to itself.
+ *
+ * Nullable in the DOM types because not every element has one; these components
+ * attach theirs in the constructor, so a null here means the element under test
+ * is not the component it is supposed to be -- worth saying rather than reading
+ * as "no match found".
+ */
+export function requireShadow(host: Element): ShadowRoot {
+  if (host.shadowRoot === null) {
+    throw new Error("this element has no shadow root");
+  }
+  return host.shadowRoot;
+}

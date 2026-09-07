@@ -1,4 +1,5 @@
 import { BafHistogramPanel } from "./baf_histogram";
+import { requireElement, requireShadow } from "../../util/dom";
 
 describe("BAF histogram panel", () => {
   let panel: BafHistogramPanel;
@@ -19,7 +20,7 @@ describe("BAF histogram panel", () => {
     await Promise.resolve();
   };
   const select = (id: string, value: string) => {
-    const input = panel.shadowRoot.querySelector(id) as HTMLSelectElement;
+    const input = requireElement(requireShadow(panel), id) as HTMLSelectElement;
     input.value = value;
     input.dispatchEvent(new Event("change"));
   };
@@ -56,21 +57,21 @@ describe("BAF histogram panel", () => {
   });
 
   test("loads the visible interval and rebins without another request", async () => {
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "Loading",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("Loading");
     await flush();
     expect(loadData).toHaveBeenCalledWith(
       samples[0],
       region,
       expect.any(AbortSignal),
     );
-    expect(panel.shadowRoot.querySelector("#status").textContent).toBe(
+    expect(requireElement(requireShadow(panel), "#status").textContent).toBe(
       "1 site",
     );
-    expect(panel.shadowRoot.querySelectorAll("rect")).toHaveLength(50);
+    expect(requireShadow(panel).querySelectorAll("rect")).toHaveLength(50);
     select("#bins", "20");
-    expect(panel.shadowRoot.querySelectorAll("rect")).toHaveLength(20);
+    expect(requireShadow(panel).querySelectorAll("rect")).toHaveLength(20);
     expect(loadData).toHaveBeenCalledTimes(1);
   });
 
@@ -106,7 +107,7 @@ describe("BAF histogram panel", () => {
     resolveOld([{ pos: 150, value: 0.5 }]);
     await flush();
     expect(oldSignal.aborted).toBe(true);
-    expect(panel.shadowRoot.querySelector("#status").textContent).toBe(
+    expect(requireElement(requireShadow(panel), "#status").textContent).toBe(
       "2 sites",
     );
   });
@@ -114,26 +115,29 @@ describe("BAF histogram panel", () => {
   test("reports empty data and invalid BAF ranges", async () => {
     loadData.mockResolvedValue([]);
     await flush();
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "No BAF sites",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("No BAF sites");
     select("#minimum", "1");
     expect(
-      (panel.shadowRoot.querySelector("#validation") as HTMLElement).hidden,
+      (requireElement(requireShadow(panel), "#validation") as HTMLElement)
+        .hidden,
     ).toBe(false);
-    expect(panel.shadowRoot.querySelectorAll("rect")).toHaveLength(0);
+    expect(requireShadow(panel).querySelectorAll("rect")).toHaveLength(0);
   });
 
   test("supports retry after an error", async () => {
     jest.spyOn(console, "error").mockImplementation(() => {});
     loadData.mockRejectedValueOnce(new Error("offline"));
     await flush();
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "Unable to load",
-    );
-    (panel.shadowRoot.querySelector("#refresh") as HTMLButtonElement).click();
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("Unable to load");
+    (
+      requireElement(requireShadow(panel), "#refresh") as HTMLButtonElement
+    ).click();
     await flush();
-    expect(panel.shadowRoot.querySelector("#status").textContent).toBe(
+    expect(requireElement(requireShadow(panel), "#status").textContent).toBe(
       "1 site",
     );
   });
@@ -146,14 +150,15 @@ describe("BAF histogram panel", () => {
   });
 
   const typeRegion = (value: string) => {
-    const input = panel.shadowRoot.querySelector(
+    const input = requireElement(
+      requireShadow(panel),
       "#custom-region",
     ) as HTMLInputElement;
     input.value = value;
     input.dispatchEvent(new Event("change"));
   };
   const regionError = () =>
-    panel.shadowRoot.querySelector("#region-validation") as HTMLElement;
+    requireElement(requireShadow(panel), "#region-validation") as HTMLElement;
 
   test("measures a region the reader types, not only the visible one", async () => {
     await flush();
@@ -174,7 +179,8 @@ describe("BAF histogram panel", () => {
     await flush();
     select("#interval", "custom");
     await flush();
-    const input = panel.shadowRoot.querySelector(
+    const input = requireElement(
+      requireShadow(panel),
       "#custom-region",
     ) as HTMLInputElement;
     // Shows the format by example, so a small edit is enough to get going.
@@ -194,7 +200,9 @@ describe("BAF histogram panel", () => {
     expect(loadData).not.toHaveBeenCalled();
     expect(regionError().hidden).toBe(false);
     expect(regionError().textContent).toMatch(/end must not come before/);
-    expect(panel.shadowRoot.querySelector("#region").textContent).toBe("");
+    expect(requireElement(requireShadow(panel), "#region").textContent).toBe(
+      "",
+    );
   });
 
   test("recovers once the region is corrected", async () => {
@@ -217,7 +225,8 @@ describe("BAF histogram panel", () => {
 
   test("hides the region box unless it is being used", async () => {
     await flush();
-    const field = panel.shadowRoot.querySelector(
+    const field = requireElement(
+      requireShadow(panel),
       "#custom-field",
     ) as HTMLElement;
     expect(field.hidden).toBe(true);
@@ -232,17 +241,20 @@ describe("BAF histogram panel", () => {
   test("hands the region pick to the tracks and uses what comes back", async () => {
     await flush();
     loadData.mockClear();
-    (panel.shadowRoot.querySelector("#pick") as HTMLButtonElement).click();
+    (
+      requireElement(requireShadow(panel), "#pick") as HTMLButtonElement
+    ).click();
     await flush();
 
     expect(pickRegion).toHaveBeenCalledTimes(1);
     expect(
-      (panel.shadowRoot.querySelector("#pick") as HTMLElement).getAttribute(
-        "aria-pressed",
-      ),
+      (
+        requireElement(requireShadow(panel), "#pick") as HTMLElement
+      ).getAttribute("aria-pressed"),
     ).toBe("true");
     expect(
-      (panel.shadowRoot.querySelector("#pick-hint") as HTMLElement).hidden,
+      (requireElement(requireShadow(panel), "#pick-hint") as HTMLElement)
+        .hidden,
     ).toBe(false);
 
     // The reader drags on the tracks; the range arrives here.
@@ -250,13 +262,18 @@ describe("BAF histogram panel", () => {
     lastPick({ chrom: "2", start: 5000, end: 6000 } as Region);
     await flush();
 
-    const interval = panel.shadowRoot.querySelector(
+    const interval = requireElement(
+      requireShadow(panel),
       "#interval",
     ) as HTMLSelectElement;
     expect(interval.value).toBe("custom");
     expect(
-      (panel.shadowRoot.querySelector("#custom-region") as HTMLInputElement)
-        .value,
+      (
+        requireElement(
+          requireShadow(panel),
+          "#custom-region",
+        ) as HTMLInputElement
+      ).value,
     ).toBe("2:5,000-6,000");
     expect(loadData).toHaveBeenCalledWith(
       samples[0],
@@ -267,7 +284,9 @@ describe("BAF histogram panel", () => {
 
   test("a picked region can then be edited by hand", async () => {
     await flush();
-    (panel.shadowRoot.querySelector("#pick") as HTMLButtonElement).click();
+    (
+      requireElement(requireShadow(panel), "#pick") as HTMLButtonElement
+    ).click();
     picking = false;
     lastPick({ chrom: "2", start: 5000, end: 6000 } as Region);
     await flush();
@@ -293,7 +312,9 @@ describe("BAF histogram panel", () => {
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {});
     try {
-      (panel.shadowRoot.querySelector("#export") as HTMLButtonElement).click();
+      (
+        requireElement(requireShadow(panel), "#export") as HTMLButtonElement
+      ).click();
       const blob = create.mock.calls[0][0] as Blob;
       const reader = new FileReader();
       const content = new Promise<string>((resolve) => {

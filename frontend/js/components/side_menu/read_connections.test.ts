@@ -1,5 +1,6 @@
 import { ReadConnectionsPanel } from "./read_connections";
 import { ReadConnection, ReadEvidence } from "../../util/read_connections";
+import { requireElement, requireShadow } from "../../util/dom";
 
 describe("Compact connection panel", () => {
   const sample: Sample = {
@@ -61,15 +62,16 @@ describe("Compact connection panel", () => {
 
   test("renders compact records, provenance, and endpoint navigation", async () => {
     await flush();
-    expect(panel.shadowRoot.querySelector("#source").textContent).toContain(
-      "connections.bedpe",
-    );
-    expect(panel.shadowRoot.querySelectorAll("path")).toHaveLength(1);
-    expect(panel.shadowRoot.querySelector("#details").textContent).toContain(
-      "500-510",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#source").textContent,
+    ).toContain("connections.bedpe");
+    expect(requireShadow(panel).querySelectorAll("path")).toHaveLength(1);
+    expect(
+      requireElement(requireShadow(panel), "#details").textContent,
+    ).toContain("500-510");
     (
-      panel.shadowRoot.querySelector(
+      requireElement(
+        requireShadow(panel),
         '[aria-label="Inspect endpoint 2"]',
       ) as HTMLButtonElement
     ).click();
@@ -89,12 +91,12 @@ describe("Compact connection panel", () => {
       ],
     });
     await flush();
-    expect(panel.shadowRoot.querySelector("#rows").textContent).toContain(
+    expect(requireElement(requireShadow(panel), "#rows").textContent).toContain(
       "Not reported",
     );
-    expect(panel.shadowRoot.querySelector("#details").textContent).toContain(
-      "Unspecified",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#details").textContent,
+    ).toContain("Unspecified");
   });
 
   test("shows partial results and pages without refetching", async () => {
@@ -108,11 +110,13 @@ describe("Compact connection panel", () => {
     });
     await flush();
     expect(
-      (panel.shadowRoot.querySelector("#warning") as HTMLElement).hidden,
+      (requireElement(requireShadow(panel), "#warning") as HTMLElement).hidden,
     ).toBe(false);
-    expect(panel.shadowRoot.querySelectorAll("#rows tr")).toHaveLength(50);
-    (panel.shadowRoot.querySelector("#next") as HTMLButtonElement).click();
-    expect(panel.shadowRoot.querySelectorAll("#rows tr")).toHaveLength(1);
+    expect(requireShadow(panel).querySelectorAll("#rows tr")).toHaveLength(50);
+    (
+      requireElement(requireShadow(panel), "#next") as HTMLButtonElement
+    ).click();
+    expect(requireShadow(panel).querySelectorAll("#rows tr")).toHaveLength(1);
     expect(loadData).toHaveBeenCalledTimes(1);
   });
 
@@ -133,25 +137,27 @@ describe("Compact connection panel", () => {
     resolveOld(evidence);
     await flush();
     expect(oldSignal.aborted).toBe(true);
-    expect(panel.shadowRoot.querySelectorAll("path")).toHaveLength(0);
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "No connections match",
-    );
+    expect(requireShadow(panel).querySelectorAll("path")).toHaveLength(0);
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("No connections match");
   });
 
   test("distinguishes a missing source and failed request", async () => {
     loadData.mockResolvedValueOnce(null);
     await flush();
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "No compact evidence file",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("No compact evidence file");
     jest.spyOn(console, "error").mockImplementation(() => {});
     loadData.mockRejectedValueOnce(new Error("offline"));
-    (panel.shadowRoot.querySelector("#refresh") as HTMLButtonElement).click();
+    (
+      requireElement(requireShadow(panel), "#refresh") as HTMLButtonElement
+    ).click();
     await flush();
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "Unable to load",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("Unable to load");
   });
 
   test("blocks oversized intervals and invalid filters before fetching", async () => {
@@ -159,11 +165,14 @@ describe("Compact connection panel", () => {
     panel.render();
     await flush();
     expect(loadData).not.toHaveBeenCalled();
-    expect(panel.shadowRoot.querySelector("#status").textContent).toContain(
-      "at most",
-    );
+    expect(
+      requireElement(requireShadow(panel), "#status").textContent,
+    ).toContain("at most");
     region = { chrom: "1", start: 1, end: 1000 };
-    const input = panel.shadowRoot.querySelector("#mapq") as HTMLInputElement;
+    const input = requireElement(
+      requireShadow(panel),
+      "#mapq",
+    ) as HTMLInputElement;
     input.value = "-1";
     panel.render();
     await flush();
