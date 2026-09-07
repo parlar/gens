@@ -217,7 +217,9 @@ describe("BAF histogram panel", () => {
 
   test("hides the region box unless it is being used", async () => {
     await flush();
-    const field = panel.shadowRoot.querySelector("#custom-field") as HTMLElement;
+    const field = panel.shadowRoot.querySelector(
+      "#custom-field",
+    ) as HTMLElement;
     expect(field.hidden).toBe(true);
     select("#interval", "custom");
     await flush();
@@ -239,8 +241,9 @@ describe("BAF histogram panel", () => {
         "aria-pressed",
       ),
     ).toBe("true");
-    expect((panel.shadowRoot.querySelector("#pick-hint") as HTMLElement).hidden)
-      .toBe(false);
+    expect(
+      (panel.shadowRoot.querySelector("#pick-hint") as HTMLElement).hidden,
+    ).toBe(false);
 
     // The reader drags on the tracks; the range arrives here.
     picking = false;

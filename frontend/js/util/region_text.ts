@@ -25,7 +25,10 @@ export function parseRegionText(
 ): ParsedRegion {
   const cleaned = text.trim();
   if (cleaned === "") {
-    return { region: null, error: "Enter a region, for example 1:100000-200000" };
+    return {
+      region: null,
+      error: "Enter a region, for example 1:100000-200000",
+    };
   }
 
   const match = /^(?:chr)?([^\s:]+)\s*:\s*([\d,\s]+?)\s*-\s*([\d,\s]+)$/i.exec(
@@ -34,7 +37,8 @@ export function parseRegionText(
   if (match === null) {
     return {
       region: null,
-      error: "Write the region as chromosome:start-end, for example 1:100000-200000",
+      error:
+        "Write the region as chromosome:start-end, for example 1:100000-200000",
     };
   }
 
@@ -44,7 +48,10 @@ export function parseRegionText(
     (candidate) => candidate.toUpperCase() === chrom,
   );
   if (named === undefined) {
-    return { region: null, error: `${rawChrom} is not a chromosome in this genome` };
+    return {
+      region: null,
+      error: `${rawChrom} is not a chromosome in this genome`,
+    };
   }
 
   const start = Number(rawStart.replace(/[,\s]/g, ""));

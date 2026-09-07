@@ -27,7 +27,11 @@ describe("reading a typed region", () => {
   });
 
   test("a single base is a region", () => {
-    expect(parse("1:500-500").region).toEqual({ chrom: "1", start: 500, end: 500 });
+    expect(parse("1:500-500").region).toEqual({
+      chrom: "1",
+      start: 500,
+      end: 500,
+    });
   });
 
   test("says what to type when the shape is wrong", () => {
@@ -58,8 +62,9 @@ describe("reading a typed region", () => {
 
 describe("showing a region back", () => {
   test("groups the digits so long coordinates can be read", () => {
-    expect(formatRegion({ chrom: "1", start: 100000, end: 200000 } as Region))
-      .toBe("1:100,000-200,000");
+    expect(
+      formatRegion({ chrom: "1", start: 100000, end: 200000 } as Region),
+    ).toBe("1:100,000-200,000");
   });
 
   test("what it writes, it can read back", () => {

@@ -177,15 +177,13 @@ export class InputControls extends HTMLElement {
     this.onSearch = onSearch;
     this.onChange = onChange;
 
-    (
-      this.querySelector("#baf-histogram-button") as HTMLButtonElement
-    ).onclick = onOpenBafHistogram;
+    (this.querySelector("#baf-histogram-button") as HTMLButtonElement).onclick =
+      onOpenBafHistogram;
     (
       this.querySelector("#read-connections-button") as HTMLButtonElement
     ).onclick = onOpenReadConnections;
-    (
-      this.querySelector("#gene-panel-button") as HTMLButtonElement
-    ).onclick = onOpenGenePanel;
+    (this.querySelector("#gene-panel-button") as HTMLButtonElement).onclick =
+      onOpenGenePanel;
 
     this.panLeftButton.onclick = () => {
       this.panLeft();

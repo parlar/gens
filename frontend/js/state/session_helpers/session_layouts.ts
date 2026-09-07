@@ -52,7 +52,10 @@ export class SessionProfiles {
       );
       userProfile = null;
     }
-    if (userProfile != null && userProfile.version !== PROFILE_SETTINGS_VERSION) {
+    if (
+      userProfile != null &&
+      userProfile.version !== PROFILE_SETTINGS_VERSION
+    ) {
       console.error(
         `Gens profile version mismatch for key "${profileKey}". ` +
           `Found v${userProfile.version ?? "missing"}, expected v${PROFILE_SETTINGS_VERSION}. ` +
@@ -270,7 +273,11 @@ function getVersionCompatibleDefaultProfiles(
 export function hasExpectedProfileSettingsKeys(
   profile: unknown,
 ): profile is ProfileSettings {
-  if (profile == null || typeof profile !== "object" || Array.isArray(profile)) {
+  if (
+    profile == null ||
+    typeof profile !== "object" ||
+    Array.isArray(profile)
+  ) {
     return false;
   }
 
@@ -281,8 +288,15 @@ export function hasExpectedProfileSettingsKeys(
   return missingKeys.length === 0 && unexpectedKeys.length === 0;
 }
 
-function logProfileSettingsKeyMismatch(profile: unknown, context: string): void {
-  if (profile == null || typeof profile !== "object" || Array.isArray(profile)) {
+function logProfileSettingsKeyMismatch(
+  profile: unknown,
+  context: string,
+): void {
+  if (
+    profile == null ||
+    typeof profile !== "object" ||
+    Array.isArray(profile)
+  ) {
     console.error(
       `Gens profile key mismatch for ${context}. Expected profile object. Using fallback profile.`,
     );
