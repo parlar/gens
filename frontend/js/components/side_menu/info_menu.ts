@@ -7,6 +7,7 @@ import { createTable, formatValue, parseTableFromMeta } from "../../util/table";
 import { getCaseLabel, getSampleLabel, removeChildren } from "../../util/utils";
 import { getEntry } from "../util/menu_utils";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -91,7 +92,7 @@ export class InfoMenu extends ShadowBaseElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.entries = this.root.querySelector("#entries");
+    this.entries = requireElement(this.root, "#entries");
   }
 
   render() {

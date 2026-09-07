@@ -1,6 +1,7 @@
 import { ICONS, SIZES } from "../../constants";
 import { prefixNts } from "../../util/utils";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -48,9 +49,9 @@ export class HighlightRow extends ShadowBaseElement {
   connectedCallback(): void {
     super.connectedCallback();
 
-    this.labelElem = this.root.querySelector("#label");
-    this.gotoElem = this.root.querySelector("#goto");
-    this.removeElem = this.root.querySelector("#remove");
+    this.labelElem = requireElement(this.root, "#label");
+    this.gotoElem = requireElement(this.root, "#goto");
+    this.removeElem = requireElement(this.root, "#remove");
 
     const range = this.highlight.range;
     const start = prefixNts(range[0]);

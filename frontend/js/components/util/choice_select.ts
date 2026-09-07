@@ -1,5 +1,6 @@
 import Choices, { EventChoice, InputChoice } from "choices.js";
 import { ShadowBaseElement } from "./shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 // https://github.com/Choices-js/Choices/issues/805
 
@@ -110,7 +111,7 @@ export class ChoiceSelect extends ShadowBaseElement {
 
     const isMultipleMode = this.hasAttribute("multiple");
 
-    this.selectElement = this.root.querySelector("#select");
+    this.selectElement = requireElement(this.root, "#select");
 
     if (isMultipleMode) {
       this.selectElement.setAttribute("multiple", "");

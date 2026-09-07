@@ -4,6 +4,7 @@ import { getSampleKey } from "../../util/utils";
 import { formatRegion, parseRegionText } from "../../util/region_text";
 import { CHROMOSOMES } from "../../constants";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 interface HistogramSources {
   getSamples: () => Sample[];
@@ -105,20 +106,20 @@ export class BafHistogramPanel extends ShadowBaseElement {
 
   constructor() {
     super(template);
-    this.sampleSelect = this.root.querySelector("#sample");
-    this.intervalSelect = this.root.querySelector("#interval");
-    this.minimum = this.root.querySelector("#minimum");
-    this.maximum = this.root.querySelector("#maximum");
-    this.binsSelect = this.root.querySelector("#bins");
-    this.status = this.root.querySelector("#status");
-    this.validation = this.root.querySelector("#validation");
+    this.sampleSelect = requireElement(this.root, "#sample");
+    this.intervalSelect = requireElement(this.root, "#interval");
+    this.minimum = requireElement(this.root, "#minimum");
+    this.maximum = requireElement(this.root, "#maximum");
+    this.binsSelect = requireElement(this.root, "#bins");
+    this.status = requireElement(this.root, "#status");
+    this.validation = requireElement(this.root, "#validation");
     this.chart = this.root.querySelector("#chart");
-    this.exportButton = this.root.querySelector("#export");
-    this.customField = this.root.querySelector("#custom-field");
-    this.customInput = this.root.querySelector("#custom-region");
-    this.regionValidation = this.root.querySelector("#region-validation");
-    this.pickButton = this.root.querySelector("#pick");
-    this.pickHint = this.root.querySelector("#pick-hint");
+    this.exportButton = requireElement(this.root, "#export");
+    this.customField = requireElement(this.root, "#custom-field");
+    this.customInput = requireElement(this.root, "#custom-region");
+    this.regionValidation = requireElement(this.root, "#region-validation");
+    this.pickButton = requireElement(this.root, "#pick");
+    this.pickHint = requireElement(this.root, "#pick-hint");
   }
 
   setSources(sources: HistogramSources) {

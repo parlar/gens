@@ -8,6 +8,7 @@ import {
 import { GensSession } from "../state/gens_session";
 import { getPan } from "../util/navigation";
 import { clampRange, rangeSize } from "../util/utils";
+import { requireElement } from "../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -221,23 +222,23 @@ export class InputControls extends HTMLElement {
   connectedCallback() {
     this.appendChild(template.content.cloneNode(true));
 
-    this.panLeftButton = this.querySelector("#pan-left");
-    this.panRightButton = this.querySelector("#pan-right");
-    this.zoomInButton = this.querySelector("#zoom-in");
-    this.zoomOutButton = this.querySelector("#zoom-out");
-    this.zoomResetButton = this.querySelector("#zoom-reset");
-    this.regionField = this.querySelector("#region-field");
-    this.toggleMarkerButton = this.querySelector("#toggle-marker");
-    this.gensHomeLink = this.querySelector("#gens-home-link");
+    this.panLeftButton = requireElement(this, "#pan-left");
+    this.panRightButton = requireElement(this, "#pan-right");
+    this.zoomInButton = requireElement(this, "#zoom-in");
+    this.zoomOutButton = requireElement(this, "#zoom-out");
+    this.zoomResetButton = requireElement(this, "#zoom-reset");
+    this.regionField = requireElement(this, "#region-field");
+    this.toggleMarkerButton = requireElement(this, "#toggle-marker");
+    this.gensHomeLink = requireElement(this, "#gens-home-link");
 
-    this.chromosomeViewButton = this.querySelector("#chromosome-view-button");
-    this.infoButton = this.querySelector("#info-button");
-    this.helpButton = this.querySelector("#help-button");
-    this.settingsButton = this.querySelector("#settings-button");
+    this.chromosomeViewButton = requireElement(this, "#chromosome-view-button");
+    this.infoButton = requireElement(this, "#info-button");
+    this.helpButton = requireElement(this, "#help-button");
+    this.settingsButton = requireElement(this, "#settings-button");
 
-    this.infoWarningBadge = this.querySelector("#info-warning-badge");
+    this.infoWarningBadge = requireElement(this, "#info-warning-badge");
 
-    this.searchButton = this.querySelector("#search");
+    this.searchButton = requireElement(this, "#search");
 
     this.chromosomeViewButton.addEventListener("click", () => {
       this.onToggleChromView();

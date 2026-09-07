@@ -1,6 +1,7 @@
 import { COLORS, ICONS, SIZES } from "../../constants";
 import { populateSelect } from "../../util/utils";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -100,16 +101,16 @@ export class TrackMenu extends ShadowBaseElement {
     super.connectedCallback();
 
     // this.yAxis = this.root.querySelector("#y-axis");
-    this.colors = this.root.querySelector("#colors");
+    this.colors = requireElement(this.root, "#colors");
 
     // this.yAxisStart = this.root.querySelector("#y-axis-start");
     // this.yAxisEnd = this.root.querySelector("#y-axis-end");
-    this.colorSelect = this.root.querySelector("#color-select");
+    this.colorSelect = requireElement(this.root, "#color-select");
 
-    this.moveUp = this.root.querySelector("#move-up");
-    this.moveDown = this.root.querySelector("#move-down");
-    this.toggleHide = this.root.querySelector("#toggle-hide");
-    this.toggleCollapse = this.root.querySelector("#toggle-collapse");
+    this.moveUp = requireElement(this.root, "#move-up");
+    this.moveDown = requireElement(this.root, "#move-down");
+    this.toggleHide = requireElement(this.root, "#toggle-hide");
+    this.toggleCollapse = requireElement(this.root, "#toggle-collapse");
 
     // this.yAxis.hidden = !this.settings.showYAxis;
     this.colors.hidden = !this.settings.showColor;

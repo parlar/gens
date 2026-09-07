@@ -1,6 +1,7 @@
 import { COLORS, FONT_SIZE, FONT_WEIGHT, ICONS, SIZES } from "../constants";
 import { getCaseLabel } from "../util/utils";
 import { ShadowBaseElement } from "./util/shadowbaseelement";
+import { requireElement } from "../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -88,13 +89,14 @@ export class HeaderInfo extends ShadowBaseElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.caseIdElem = this.root.querySelector("#case-id");
-    this.caseLinkoutElem = this.root.querySelector("#case-linkout");
-    this.caseLinkoutWrapperElem = this.root.querySelector(
+    this.caseIdElem = requireElement(this.root, "#case-id");
+    this.caseLinkoutElem = requireElement(this.root, "#case-linkout");
+    this.caseLinkoutWrapperElem = requireElement(
+      this.root,
       "#case-linkout-wrapper",
     );
     // this.sampleIdsElem = this.root.querySelector("#sample-ids");
-    this.versionElem = this.root.querySelector("#version");
+    this.versionElem = requireElement(this.root, "#version");
   }
 
   initialize(

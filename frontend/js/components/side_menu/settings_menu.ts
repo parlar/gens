@@ -23,6 +23,7 @@ import { HighlightRow } from "./highlight_row";
 import { IconButton } from "../util/icon_button";
 import { GensSession } from "../../state/gens_session";
 import { clearCachedData } from "../../util/storage";
+import { requireElement } from "../../util/dom";
 
 export interface TrackHeights {
   bandCollapsed: number;
@@ -400,14 +401,16 @@ export class SettingsMenu extends ShadowBaseElement {
     this.colorBySelect = this.root.querySelector("#color-by-select");
     this.sampleSelect = this.root.querySelector("#sample-select");
     this.mainSampleSelect = this.root.querySelector("#main-sample-select");
-    this.tracksOverview = this.root.querySelector("#tracks-overview");
-    this.samplesOverview = this.root.querySelector("#samples-overview");
-    this.highlightsOverview = this.root.querySelector("#highlights-overview");
+    this.tracksOverview = requireElement(this.root, "#tracks-overview");
+    this.samplesOverview = requireElement(this.root, "#samples-overview");
+    this.highlightsOverview = requireElement(this.root, "#highlights-overview");
     this.addSampleButton = this.root.querySelector("#add-sample");
-    this.applyDotTrackHeightsButton = this.root.querySelector(
+    this.applyDotTrackHeightsButton = requireElement(
+      this.root,
       "#apply-dot-track-heights",
     );
-    this.applyBandTrackHeightButton = this.root.querySelector(
+    this.applyBandTrackHeightButton = requireElement(
+      this.root,
       "#apply-band-track-height",
     );
 
@@ -433,33 +436,38 @@ export class SettingsMenu extends ShadowBaseElement {
       "#case-display-alias-info",
     ) as HTMLDivElement;
 
-    this.applyDefaultCovYRangeButton = this.root.querySelector(
+    this.applyDefaultCovYRangeButton = requireElement(
+      this.root,
       "#apply-default-cov-y-range",
     );
-    this.applyVariantFilterButton = this.root.querySelector(
+    this.applyVariantFilterButton = requireElement(
+      this.root,
       "#apply-variant-filter",
     );
-    this.variantThresholdInput = this.root.querySelector("#variant-filter");
-    this.applyMainSample = this.root.querySelector("#apply-main-sample");
+    this.variantThresholdInput = requireElement(this.root, "#variant-filter");
+    this.applyMainSample = requireElement(this.root, "#apply-main-sample");
     this.resetLayoutButton = this.root.querySelector("#reset-layout");
     this.clearCachedDataButton = this.root.querySelector("#clear-cached-data");
     this.resetLayoutInfo = this.root.querySelector(
       "#reset-layout-info",
     ) as HTMLDivElement;
 
-    this.bandTrackCollapsedHeightElem = this.root.querySelector(
+    this.bandTrackCollapsedHeightElem = requireElement(
+      this.root,
       "#band-collapsed-height",
     );
-    this.dotTrackCollapsedHeightElem = this.root.querySelector(
+    this.dotTrackCollapsedHeightElem = requireElement(
+      this.root,
       "#dot-collapsed-height",
     );
-    this.dotTrackExpandedHeightElem = this.root.querySelector(
+    this.dotTrackExpandedHeightElem = requireElement(
+      this.root,
       "#dot-expanded-height",
     );
-    this.coverageYStartElem = this.root.querySelector("#coverage-y-start");
-    this.coverageYEndElem = this.root.querySelector("#coverage-y-end");
+    this.coverageYStartElem = requireElement(this.root, "#coverage-y-start");
+    this.coverageYEndElem = requireElement(this.root, "#coverage-y-end");
 
-    this.currentProfile = this.root.querySelector("#current-profile");
+    this.currentProfile = requireElement(this.root, "#current-profile");
     this.currentProfile.textContent = this.getProfileSettings().profileKey;
 
     this.updateResetLayoutInfo();

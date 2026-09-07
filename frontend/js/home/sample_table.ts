@@ -1,6 +1,7 @@
 import { DataTable } from "simple-datatables";
 import { ICONS } from "../constants";
 import { getCaseLabel } from "../util/utils";
+import { requireElement } from "../util/dom";
 
 export interface SampleInfo {
   case_id: string;
@@ -60,8 +61,8 @@ export class SamplesTable extends HTMLElement {
   connectedCallback(): void {
     this.appendChild(tableTemplate.content.cloneNode(true));
 
-    this.tableContainer = this.querySelector("#table-container");
-    this.loadingPlaceholder = this.querySelector("#loading-placeholder");
+    this.tableContainer = requireElement(this, "#table-container");
+    this.loadingPlaceholder = requireElement(this, "#loading-placeholder");
 
     this.dataTable = new DataTable("#table-content", {
       searchable: true,

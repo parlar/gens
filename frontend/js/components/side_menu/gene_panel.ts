@@ -9,6 +9,7 @@ import {
   stepIndex,
 } from "../../util/gene_panel";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 interface GenePanelSources {
   getPanels: () => Promise<ApiGeneList[] | null>;
@@ -104,18 +105,18 @@ export class GenePanelNavigator extends ShadowBaseElement {
 
   constructor() {
     super(template);
-    this.panelSelect = this.root.querySelector("#panel");
-    this.filterInput = this.root.querySelector("#filter");
-    this.status = this.root.querySelector("#status");
-    this.previousButton = this.root.querySelector("#previous");
-    this.nextButton = this.root.querySelector("#next");
-    this.position = this.root.querySelector("#position");
-    this.geneList = this.root.querySelector("#genes");
-    this.missing = this.root.querySelector("#missing");
-    this.missingCount = this.root.querySelector("#missing-count");
-    this.missingList = this.root.querySelector("#missing-list");
-    this.hint = this.root.querySelector("#hint");
-    this.keepZoom = this.root.querySelector("#keep-zoom");
+    this.panelSelect = requireElement(this.root, "#panel");
+    this.filterInput = requireElement(this.root, "#filter");
+    this.status = requireElement(this.root, "#status");
+    this.previousButton = requireElement(this.root, "#previous");
+    this.nextButton = requireElement(this.root, "#next");
+    this.position = requireElement(this.root, "#position");
+    this.geneList = requireElement(this.root, "#genes");
+    this.missing = requireElement(this.root, "#missing");
+    this.missingCount = requireElement(this.root, "#missing-count");
+    this.missingList = requireElement(this.root, "#missing-list");
+    this.hint = requireElement(this.root, "#hint");
+    this.keepZoom = requireElement(this.root, "#keep-zoom");
     this.keepZoom.checked = loadKeepZoomPreference();
   }
 

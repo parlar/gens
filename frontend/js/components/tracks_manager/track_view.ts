@@ -34,6 +34,7 @@ import { getTrack as getTrack } from "./utils/create_tracks";
 import { getOpenTrackContextMenu } from "./utils/track_menues";
 import { SessionPosition } from "../../state/session_helpers/session_position";
 import { pixelsToBases } from "../../util/panning";
+import { requireElement } from "../../util/dom";
 
 const trackHeight = STYLE.tracks.trackHeight;
 
@@ -122,10 +123,10 @@ export class TrackView extends ShadowBaseElement {
   connectedCallback(): void {
     super.connectedCallback();
 
-    this.topContainer = this.root.querySelector("#top-container");
-    this.tracksContainer = this.root.querySelector("#tracks-container");
-    this.bottomContainer = this.root.querySelector("#bottom-container");
-    this.positionLabel = this.root.querySelector("#position-label");
+    this.topContainer = requireElement(this.root, "#top-container");
+    this.tracksContainer = requireElement(this.root, "#tracks-container");
+    this.bottomContainer = requireElement(this.root, "#bottom-container");
+    this.positionLabel = requireElement(this.root, "#position-label");
   }
 
   public async initialize(

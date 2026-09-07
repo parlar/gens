@@ -1,6 +1,7 @@
 import { ICONS, SIZES } from "../../constants";
 import { IconButton } from "../util/icon_button";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -69,7 +70,7 @@ export class TrackRow extends ShadowBaseElement {
   connectedCallback(): void {
     super.connectedCallback();
 
-    this.label = this.root.querySelector("#label");
+    this.label = requireElement(this.root, "#label");
     this.up = this.root.querySelector("#up");
     this.down = this.root.querySelector("#down");
     this.toggleHide = this.root.querySelector("#hide");

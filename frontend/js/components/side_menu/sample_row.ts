@@ -2,6 +2,7 @@ import { COLORS, FONT_SIZE, FONT_WEIGHT, ICONS, SIZES } from "../../constants";
 import { getCaseLabel, getSampleLabel } from "../../util/utils";
 import { IconButton } from "../util/icon_button";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -58,8 +59,8 @@ export class SampleRow extends ShadowBaseElement {
   connectedCallback(): void {
     super.connectedCallback();
 
-    this.sampleLabelElem = this.root.querySelector("#sample-label");
-    this.caseLabelElem = this.root.querySelector("#case-label");
+    this.sampleLabelElem = requireElement(this.root, "#sample-label");
+    this.caseLabelElem = requireElement(this.root, "#case-label");
     this.removeElem = this.root.querySelector("#remove");
 
     this.sampleLabelElem.textContent = getSampleLabel(

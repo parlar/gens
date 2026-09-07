@@ -1,6 +1,7 @@
 import { ShadowBaseElement } from "../components/util/shadowbaseelement";
 import { COLORS, SIZES, STYLE, ZINDICES } from "../constants";
 import { rangeSize, sortRange } from "../util/utils";
+import { requireElement } from "../util/dom";
 
 const style = STYLE.menu;
 
@@ -78,7 +79,7 @@ export class GensMarker extends ShadowBaseElement {
   }
 
   connectedCallback(): void {
-    this.close = this.root.querySelector("#close");
+    this.close = requireElement(this.root, "#close");
 
     // Normally it would be preferable to deal with the mouse hover though CSS only
     // Here is tricky though, as we want pointer: none to let it click elements below

@@ -11,6 +11,7 @@ import { DataTrack } from "../tracks/base_tracks/data_track";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
 import { createDataTrackWrapper } from "./utils";
 import { getBandTrack, getDotTrack } from "./utils/create_tracks";
+import { requireElement } from "../../util/dom";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -62,10 +63,11 @@ export class ChromosomeView extends ShadowBaseElement {
   connectedCallback(): void {
     super.connectedCallback();
 
-    this.chromosomeTracksContainer = this.root.querySelector(
+    this.chromosomeTracksContainer = requireElement(
+      this.root,
       "#chromosome-tracks-container",
     );
-    this.sampleLabel = this.root.querySelector("#sample-label");
+    this.sampleLabel = requireElement(this.root, "#sample-label");
   }
 
   async initialize(session: GensSession, dataSource: RenderDataSource) {
