@@ -1,6 +1,7 @@
 import {
   filterGenes,
   geneRegion,
+  keptZoomRegion,
   positionLabel,
   stepIndex,
 } from "./gene_panel";
@@ -37,8 +38,9 @@ describe("framing a gene", () => {
   });
 
   test("does not run off the end of the chromosome", () => {
-    expect(geneRegion(gene("ATEND", 248_950_000, 248_956_000), 248_956_422).end)
-      .toBe(248_956_422);
+    expect(
+      geneRegion(gene("ATEND", 248_950_000, 248_956_000), 248_956_422).end,
+    ).toBe(248_956_422);
   });
 
   test("still returns a region when the chromosome size is unknown", () => {
@@ -97,5 +99,110 @@ describe("position label", () => {
 
   test("says so when the panel is empty", () => {
     expect(positionLabel(-1, 0)).toBe("0 / 0");
+  });
+});
+
+/**
+ * Walking a panel to compare coverage between genes is a different task from
+ * inspecting one gene. Reframing at every step makes the comparison impossible:
+ * a dip looks deeper or shallower purely because the neighbouring gene is a
+ * different size. These check the window keeps the width it had.
+ */
+describe("holding the scale while stepping", () => {
+  const CHROM_SIZE = 248_956_422;
+  const width = (region: Region) => region.end - region.start + 1;
+
+  test("the window keeps its width and the gene lands in the middle", () => {
+    const region = keptZoomRegion(
+      gene("MYH7", 1_000_001, 1_020_000),
+      60_000,
+      CHROM_SIZE,
+    );
+
+    expect(width(region)).toBe(60_000);
+    expect(region.start).toBe(980_001);
+    expect(region.end).toBe(1_040_000);
+  });
+
+  test("stepping between genes of very different sizes does not change the scale", () => {
+    // The whole point. A 5 kb gene and a 2 Mb gene are looked at through the
+    // same window, so the two coverage tracks are directly comparable.
+    const small = keptZoomRegion(
+      gene("SMALL", 1_000_001, 1_005_000),
+      60_000,
+      CHROM_SIZE,
+    );
+    const large = keptZoomRegion(
+      gene("LARGE", 5_000_001, 7_000_000),
+      60_000,
+      CHROM_SIZE,
+    );
+
+    expect(width(small)).toBe(width(large));
+  });
+
+  test("a gene wider than the window shows its middle rather than growing it", () => {
+    const region = keptZoomRegion(
+      gene("HUGE", 1_000_001, 3_000_000),
+      60_000,
+      CHROM_SIZE,
+    );
+
+    expect(width(region)).toBe(60_000);
+    expect(region.start).toBeGreaterThan(1_000_001);
+    expect(region.end).toBeLessThan(3_000_000);
+  });
+
+  test("a gene at the start of a chromosome keeps the width, off centre", () => {
+    // Pushed inwards rather than clipped: clipping would change the scale at
+    // exactly the moment the reader is not expecting it to.
+    const region = keptZoomRegion(gene("FIRST", 1, 4_000), 60_000, CHROM_SIZE);
+
+    expect(region.start).toBe(1);
+    expect(width(region)).toBe(60_000);
+  });
+
+  test("a gene at the end of a chromosome keeps the width too", () => {
+    const region = keptZoomRegion(
+      gene("LAST", CHROM_SIZE - 3_000, CHROM_SIZE),
+      60_000,
+      CHROM_SIZE,
+    );
+
+    expect(region.end).toBe(CHROM_SIZE);
+    expect(width(region)).toBe(60_000);
+  });
+
+  test("a window wider than the chromosome becomes the whole chromosome", () => {
+    const region = keptZoomRegion(
+      gene("ANY", 1_000_001, 1_002_000),
+      CHROM_SIZE * 2,
+      CHROM_SIZE,
+    );
+
+    expect(region).toEqual({ chrom: "1", start: 1, end: CHROM_SIZE });
+  });
+
+  test("the width is kept when the gene is on another chromosome", () => {
+    // Stepping to a gene on a different contig is still stepping; only the
+    // contig changes.
+    const region = keptZoomRegion(
+      gene("OTHER", 5_000_001, 5_010_000, "7"),
+      60_000,
+      159_345_973,
+    );
+
+    expect(region.chrom).toBe("7");
+    expect(width(region)).toBe(60_000);
+  });
+
+  test("an unknown chromosome size still gives a window of the right width", () => {
+    const region = keptZoomRegion(
+      gene("NOSIZE", 1_000_001, 1_002_000),
+      60_000,
+      null,
+    );
+
+    expect(width(region)).toBe(60_000);
   });
 });

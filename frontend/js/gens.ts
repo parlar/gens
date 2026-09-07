@@ -219,8 +219,13 @@ export async function initCanvases({
     render({ reloadData: true, chromosomeChange: true });
   };
 
-  setupShortcuts(session, sideMenu, inputControls, onChromClick, render, (delta) =>
-    genePanelPage.step(delta),
+  setupShortcuts(
+    session,
+    sideMenu,
+    inputControls,
+    onChromClick,
+    render,
+    (delta) => genePanelPage.step(delta),
   );
 
   addSettingsPageSources(
@@ -267,13 +272,18 @@ export async function initCanvases({
     getSampleLabel: (sample) => session.getDisplaySampleLabel(sample),
     loadData: (sample, region, filters, signal) =>
       api.getReadEvidence(sample, region, filters, signal),
-    canNavigate: (endpoint) => endpointRegion(endpoint, session.pos.getChromSizes()) != null,
+    canNavigate: (endpoint) =>
+      endpointRegion(endpoint, session.pos.getChromSizes()) != null,
     navigate: (endpoint) => {
       const region = endpointRegion(endpoint, session.pos.getChromSizes());
       if (region == null) return;
       const chromosomeChange = region.chrom !== session.pos.getChromosome();
       session.pos.setChromosome(region.chrom, [region.start, region.end]);
-      render({ reloadData: true, positionOnly: !chromosomeChange, chromosomeChange });
+      render({
+        reloadData: true,
+        positionOnly: !chromosomeChange,
+        chromosomeChange,
+      });
     },
   });
 
@@ -283,6 +293,10 @@ export async function initCanvases({
       api.getPanelGenes(panelId, version, signal),
     getChromSize: (chromosome) =>
       session.pos.getChromSizes()[chromosome] ?? null,
+    getCurrentRegion: () => {
+      const [start, end] = session.pos.getXRange();
+      return { chrom: session.pos.getChromosome(), start, end };
+    },
     navigate: (region) => {
       const chromosomeChange = region.chrom !== session.pos.getChromosome();
       session.pos.setChromosome(region.chrom, [region.start, region.end]);

@@ -2,9 +2,27 @@ import { GenePanelNavigator } from "./gene_panel";
 
 describe("Gene panel navigator", () => {
   const genes: ApiPanelGene[] = [
-    { symbol: "CASQ2", chromosome: "1", start: 115_700_021, end: 115_768_714, is_mane: true },
-    { symbol: "LMNA", chromosome: "1", start: 156_114_711, end: 156_140_081, is_mane: true },
-    { symbol: "TNNT2", chromosome: "1", start: 201_359_014, end: 201_377_680, is_mane: false },
+    {
+      symbol: "CASQ2",
+      chromosome: "1",
+      start: 115_700_021,
+      end: 115_768_714,
+      is_mane: true,
+    },
+    {
+      symbol: "LMNA",
+      chromosome: "1",
+      start: 156_114_711,
+      end: 156_140_081,
+      is_mane: true,
+    },
+    {
+      symbol: "TNNT2",
+      chromosome: "1",
+      start: 201_359_014,
+      end: 201_377_680,
+      is_mane: false,
+    },
   ];
 
   let panel: GenePanelNavigator;
@@ -19,10 +37,18 @@ describe("Gene panel navigator", () => {
     (shadow().activeElement as HTMLElement | null)?.textContent?.trim() ?? null;
   const press = (target: Element, key: string) =>
     target.dispatchEvent(
-      new KeyboardEvent("keydown", { key, bubbles: true, composed: true, cancelable: true }),
+      new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      }),
     );
 
   beforeEach(async () => {
+    // The Keep zoom choice is remembered between sessions on purpose, so it
+    // also survives between tests unless cleared.
+    window.localStorage.clear();
     navigate = jest.fn();
     panel = new GenePanelNavigator();
     panel.setSources({
@@ -35,6 +61,11 @@ describe("Gene panel navigator", () => {
         missing: ["NOTAREALGENE"],
       }),
       getChromSize: () => 248_956_422,
+      getCurrentRegion: () => ({
+        chrom: "1",
+        start: 1_000_001,
+        end: 1_060_000,
+      }),
       navigate,
     });
     document.body.append(panel);
@@ -54,7 +85,9 @@ describe("Gene panel navigator", () => {
       "TNNT2",
     ]);
     expect(shadow().querySelector("#status")?.textContent).toContain("3 genes");
-    expect(shadow().querySelector("#missing-count")?.textContent).toContain("1 not placed");
+    expect(shadow().querySelector("#missing-count")?.textContent).toContain(
+      "1 not placed",
+    );
   });
 
   test("tells the reader which keys work", () => {
@@ -89,7 +122,24 @@ describe("Gene panel navigator", () => {
     expect(focused()).toContain("TNNT2");
   });
 
-  test("opening a gene frames it with flanking sequence", () => {
+  test("opening a gene keeps the current zoom and centres it", () => {
+    // The default. Walking a panel is usually a comparison, and reframing at
+    // every gene makes a dip look deeper or shallower purely because the
+    // neighbouring gene is a different size.
+    rows()[1].click();
+    const [region] = navigate.mock.calls[0];
+
+    expect(region.end - region.start + 1).toBe(60_000);
+    expect(region.start).toBeLessThan(156_109_637);
+    expect(region.end).toBeGreaterThan(156_145_155);
+    expect(rows()[1].getAttribute("aria-current")).toBe("true");
+  });
+
+  test("unticking Keep zoom frames the gene with flanking sequence", () => {
+    const keepZoom = shadow().querySelector("#keep-zoom") as HTMLInputElement;
+    keepZoom.checked = false;
+    keepZoom.dispatchEvent(new Event("change"));
+
     rows()[1].click();
     // LMNA spans 25,371 bases, so the flank is a fifth of that.
     expect(navigate).toHaveBeenCalledWith({
@@ -97,7 +147,17 @@ describe("Gene panel navigator", () => {
       start: 156_109_637,
       end: 156_145_155,
     });
-    expect(rows()[1].getAttribute("aria-current")).toBe("true");
+  });
+
+  test("stepping between two genes does not change the scale", () => {
+    // The reason the default changed: the same window is used for both, so the
+    // two coverage tracks can be read against each other.
+    rows()[0].click();
+    rows()[2].click();
+    const widths = navigate.mock.calls.map(
+      ([region]) => region.end - region.start + 1,
+    );
+    expect(new Set(widths).size).toBe(1);
   });
 
   test("n and p step, and keep the focus inside the list", () => {
@@ -139,9 +199,27 @@ describe("Gene panel keyboard focus", () => {
   // moving the highlight and start zooming the genome, which is a silent and
   // very confusing change of meaning.
   const genes: ApiPanelGene[] = [
-    { symbol: "CASQ2", chromosome: "1", start: 115_700_021, end: 115_768_714, is_mane: true },
-    { symbol: "LMNA", chromosome: "1", start: 156_114_711, end: 156_140_081, is_mane: true },
-    { symbol: "TNNT2", chromosome: "1", start: 201_359_014, end: 201_377_680, is_mane: true },
+    {
+      symbol: "CASQ2",
+      chromosome: "1",
+      start: 115_700_021,
+      end: 115_768_714,
+      is_mane: true,
+    },
+    {
+      symbol: "LMNA",
+      chromosome: "1",
+      start: 156_114_711,
+      end: 156_140_081,
+      is_mane: true,
+    },
+    {
+      symbol: "TNNT2",
+      chromosome: "1",
+      start: 201_359_014,
+      end: 201_377_680,
+      is_mane: true,
+    },
   ];
   let panel: GenePanelNavigator;
   const flush = async () => {
@@ -156,13 +234,25 @@ describe("Gene panel keyboard focus", () => {
   };
 
   beforeEach(async () => {
+    // The Keep zoom choice is remembered between sessions on purpose, so it
+    // also survives between tests unless cleared.
+    window.localStorage.clear();
     panel = new GenePanelNavigator();
     panel.setSources({
       getPanels: async () => [{ id: "demo", name: "Demo", version: "2.0" }],
       loadGenes: async () => ({
-        panel_id: "demo", version: "2.0", genome_build: 38, genes, missing: [],
+        panel_id: "demo",
+        version: "2.0",
+        genome_build: 38,
+        genes,
+        missing: [],
       }),
       getChromSize: () => 248_956_422,
+      getCurrentRegion: () => ({
+        chrom: "1",
+        start: 1_000_001,
+        end: 1_060_000,
+      }),
       navigate: jest.fn(),
     });
     document.body.append(panel);

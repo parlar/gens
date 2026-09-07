@@ -2,7 +2,10 @@ import { COLORS, ICONS } from "../../constants";
 import {
   filterGenes,
   geneRegion,
+  keptZoomRegion,
+  loadKeepZoomPreference,
   positionLabel,
+  saveKeepZoomPreference,
   stepIndex,
 } from "../../util/gene_panel";
 import { ShadowBaseElement } from "../util/shadowbaseelement";
@@ -15,6 +18,8 @@ interface GenePanelSources {
     signal: AbortSignal,
   ) => Promise<ApiPanelGenes | null>;
   getChromSize: (chromosome: string) => number | null;
+  /** The region on screen now, so stepping can keep its width. */
+  getCurrentRegion: () => Region;
   navigate: (region: Region) => void;
 }
 
@@ -32,6 +37,8 @@ template.innerHTML = String.raw`
     #status[data-error] { color: #a12622; }
     .stepper { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .stepper #position { font-variant-numeric: tabular-nums; min-width: 72px; text-align: center; }
+    .stepper .toggle { display: flex; flex-direction: row; align-items: center; gap: 6px; margin-left: auto; font-size: 0.85em; color: ${COLORS.darkGray}; white-space: nowrap; }
+    .stepper .toggle input { width: auto; height: auto; }
     button { height: 32px; min-width: 32px; background: ${COLORS.extraLightGray}; border: 1px solid ${COLORS.lightGray}; border-radius: 4px; cursor: pointer; }
     button:disabled { opacity: 0.4; cursor: default; }
     button:hover:not(:disabled) { background: ${COLORS.lighterGray}; }
@@ -62,6 +69,7 @@ template.innerHTML = String.raw`
     <button id="previous" title="Previous gene (p)" aria-label="Previous gene" disabled><span class="fas ${ICONS.left}" aria-hidden="true"></span></button>
     <span id="position">0 / 0</span>
     <button id="next" title="Next gene (n)" aria-label="Next gene" disabled><span class="fas ${ICONS.right}" aria-hidden="true"></span></button>
+    <label class="toggle" title="Move to each gene without changing the zoom, so coverage stays comparable between genes"><input id="keep-zoom" type="checkbox" checked>Keep zoom</label>
   </div>
   <ul id="genes"></ul>
   <p id="hint" hidden><kbd>↑</kbd><kbd>↓</kbd> choose &nbsp;·&nbsp; <kbd>Enter</kbd> open &nbsp;·&nbsp; <kbd>n</kbd><kbd>p</kbd> next, previous</p>
@@ -80,6 +88,7 @@ export class GenePanelNavigator extends ShadowBaseElement {
   private nextButton: HTMLButtonElement;
   private position: HTMLSpanElement;
   private geneList: HTMLUListElement;
+  private keepZoom: HTMLInputElement;
   private missing: HTMLDetailsElement;
   private missingCount: HTMLSpanElement;
   private missingList: HTMLUListElement;
@@ -106,6 +115,8 @@ export class GenePanelNavigator extends ShadowBaseElement {
     this.missingCount = this.root.querySelector("#missing-count");
     this.missingList = this.root.querySelector("#missing-list");
     this.hint = this.root.querySelector("#hint");
+    this.keepZoom = this.root.querySelector("#keep-zoom");
+    this.keepZoom.checked = loadKeepZoomPreference();
   }
 
   setSources(sources: GenePanelSources) {
@@ -118,6 +129,9 @@ export class GenePanelNavigator extends ShadowBaseElement {
     this.addElementListener(this.filterInput, "input", () => this.drawList());
     this.addElementListener(this.previousButton, "click", () => this.step(-1));
     this.addElementListener(this.nextButton, "click", () => this.step(1));
+    this.addElementListener(this.keepZoom, "change", () =>
+      saveKeepZoomPreference(this.keepZoom.checked),
+    );
     this.root.addEventListener(
       "keydown",
       (event) => this.onKeyDown(event as KeyboardEvent),
@@ -129,7 +143,11 @@ export class GenePanelNavigator extends ShadowBaseElement {
   /** Step to the next or previous gene. Also reachable from the n and p keys. */
   step(delta: number) {
     const visible = this.visibleGenes();
-    const next = stepIndex(this.highlightedIndex(visible), visible.length, delta);
+    const next = stepIndex(
+      this.highlightedIndex(visible),
+      visible.length,
+      delta,
+    );
     if (next < 0) {
       return;
     }
@@ -184,9 +202,7 @@ export class GenePanelNavigator extends ShadowBaseElement {
 
   private open(gene: ApiPanelGene) {
     this.currentSymbol = gene.symbol;
-    this.sources.navigate(
-      geneRegion(gene, this.sources.getChromSize(gene.chromosome)),
-    );
+    this.sources.navigate(this.regionFor(gene));
     this.drawList();
 
     const row = this.rowFor(gene.symbol);
@@ -197,6 +213,27 @@ export class GenePanelNavigator extends ShadowBaseElement {
     if (active !== null && this.geneList.contains(active)) {
       row?.focus({ preventScroll: true });
     }
+  }
+
+  /**
+   * Where opening this gene should take the reader.
+   *
+   * Holding the scale is the default because walking a panel is usually a
+   * comparison: reframing at every gene makes a dip look deeper or shallower
+   * purely because the neighbouring gene is a different size. Framing each gene
+   * to its own extent is still one click away for reading a single gene.
+   */
+  private regionFor(gene: ApiPanelGene): Region {
+    const chromosomeSize = this.sources.getChromSize(gene.chromosome);
+    if (!this.keepZoom.checked) {
+      return geneRegion(gene, chromosomeSize);
+    }
+    const current = this.sources.getCurrentRegion();
+    return keptZoomRegion(
+      gene,
+      current.end - current.start + 1,
+      chromosomeSize,
+    );
   }
 
   private rowButtons(): HTMLButtonElement[] {
@@ -264,7 +301,9 @@ export class GenePanelNavigator extends ShadowBaseElement {
         return;
       }
       event.preventDefault();
-      this.focusRow(event.key === "Home" ? buttons[0] : buttons[buttons.length - 1]);
+      this.focusRow(
+        event.key === "Home" ? buttons[0] : buttons[buttons.length - 1],
+      );
       return;
     }
 
