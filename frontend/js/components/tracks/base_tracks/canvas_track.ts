@@ -120,7 +120,10 @@ export abstract class CanvasTrack extends ShadowBaseElement {
   // can all be rendered as such: canvas.render(updateData);
   async render(_updateData: RenderSettings) {}
 
-  initializeClick(onElementClick: (el: HoverBox) => void | null = null) {
+  // Reads as "a callback, or none". It used to say "a callback returning
+  // void or null", which is a different type and rejected the async
+  // handlers two tracks pass.
+  initializeClick(onElementClick: ((el: HoverBox) => void) | null = null) {
     setupCanvasClick(
       this.canvas,
       () => this.hoverTargets,
@@ -167,7 +170,12 @@ export abstract class CanvasTrack extends ShadowBaseElement {
       this.canvas.height = actualHeight;
 
       const ctx = this.canvas.getContext("2d");
-      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      // Null where the canvas cannot give a 2d context at all, in which case
+      // nothing on this track draws and the scale it would have set does not
+      // matter. renderLoading below already returns early on the same state.
+      if (ctx !== null) {
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      }
     }
 
     this.dimensions = {

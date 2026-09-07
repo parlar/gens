@@ -9,7 +9,7 @@ interface HoverSettings {
 export function setupCanvasClick(
   canvas: HTMLCanvasElement,
   getHoverTargets: () => HoverBox[],
-  onElementClick: (el: HoverBox) => void | null = null,
+  onElementClick: ((el: HoverBox) => void) | null = null,
   abortSignal: AbortSignal,
 ) {
   canvas.addEventListener(

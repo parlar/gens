@@ -114,6 +114,26 @@ interface RenderBand {
   exonCount?: number;
 }
 
+/**
+ * A band the band track has placed in a lane and given a colour.
+ *
+ * RenderBand marks y1, y2 and color optional because a band arrives from the
+ * data source without them; the layout pass fills them in before anything is
+ * drawn. Saying that in the type is what lets the drawing code read them
+ * without a null check on every use.
+ */
+interface PositionedBand extends RenderBand {
+  y1: number;
+  y2: number;
+  color: string;
+}
+
+/** A positioned band that carries a transcript's exons, so it draws as one. */
+interface TranscriptBand extends PositionedBand {
+  subFeatures: TranscriptFeature[];
+  exonCount: number;
+}
+
 interface RenderDot {
   x: number;
   y: number;

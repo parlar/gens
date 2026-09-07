@@ -75,7 +75,8 @@ export class IdeogramTrack extends CanvasTrack {
       [style.xPad, this.dimensions.width - style.xPad],
     );
 
-    let centromere = null;
+    let centromere: { start: number; end: number; center: number } | null =
+      null;
     if (chromInfo.centromere !== null) {
       const start = Math.round(xScale(chromInfo.centromere.start));
       const end = Math.round(xScale(chromInfo.centromere.end));

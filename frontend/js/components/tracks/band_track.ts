@@ -9,6 +9,13 @@ import { getLinearScale } from "../../draw/render_utils";
 import { drawLabel, drawLine, drawArrow } from "../../draw/shapes";
 import { DataTrack } from "./base_tracks/data_track";
 
+/**
+ * What a band is drawn in when it carries no colour of its own. Matches the
+ * grey gens/models/annotation.py gives an annotation that names none, so a band
+ * that reaches here uncoloured looks the same as one the backend defaulted.
+ */
+const DEFAULT_BAND_COLOR = "#808080";
+
 const LEFT_PX_EDGE = STYLE.yAxis.width;
 
 export class BandTrack extends DataTrack {
@@ -119,7 +126,7 @@ export class BandTrack extends DataTrack {
       labelSize,
     );
 
-    const renderBand: RenderBand[] = bandsInView.map((band) => {
+    const renderBand: PositionedBand[] = bandsInView.map((band) => {
       if (bandOverlaps[band.id] == null) {
         throw Error(`Missing ID: ${band.id}`);
       }
@@ -133,6 +140,11 @@ export class BandTrack extends DataTrack {
       // band's edgeColor unconditionally, which made the field impossible to
       // use from outside.
       renderBand.edgeColor = band.edgeColor ?? STYLE.bandTrack.edgeColor;
+      // A band with no colour used to be drawn with whatever fillStyle the
+      // previous band left on the context, so its appearance depended on what
+      // happened to be next to it. Grey matches the colour the backend gives an
+      // annotation that names none.
+      renderBand.color = band.color ?? DEFAULT_BAND_COLOR;
 
       return renderBand;
     });
@@ -190,9 +202,15 @@ export class BandTrack extends DataTrack {
   }
 }
 
+/** Whether a band carries the exons that make it draw as a transcript. */
+function asTranscript(band: PositionedBand): TranscriptBand | null {
+  const hasExons = band.subFeatures != null && band.subFeatures.length > 0;
+  return hasExons && band.exonCount != null ? (band as TranscriptBand) : null;
+}
+
 function drawBand(
   ctx: CanvasRenderingContext2D,
-  band: RenderBand,
+  band: PositionedBand,
   xScale: (number) => number,
   showDetails: boolean,
   isExpanded: boolean,
@@ -208,9 +226,9 @@ function drawBand(
   const xPxRange: Rng = [xScale(band.start), xScale(band.end)];
   const [xPxStart, xPxEnd] = xPxRange;
   const width = Math.max(xPxEnd - xPxStart, STYLE.bandTrack.minBandWidth);
-  const isTranscript = band.subFeatures != null && band.subFeatures.length > 0;
+  const transcript = asTranscript(band);
 
-  if (!isTranscript || !showDetails) {
+  if (transcript === null || !showDetails) {
     ctx.fillStyle = band.color;
     ctx.fillRect(xPxStart, y1, width, height);
     // Outlined only when the band asked for it by setting a width. Bands have
@@ -228,11 +246,17 @@ function drawBand(
       );
     }
     const box = { x1: xPxStart, x2: xPxStart + width, y1, y2 };
-    const hoverBox: HoverBox = { box, label: band.hoverInfo, element: band };
+    // A band with no hover text gets an empty tooltip, which is what the
+    // undefined already produced: the DOM turns it into "" on assignment.
+    const hoverBox: HoverBox = {
+      box,
+      label: band.hoverInfo ?? "",
+      element: band,
+    };
     hoverBoxes.push(hoverBox);
   }
 
-  if (showDetails && isTranscript) {
+  if (showDetails && transcript !== null) {
     const midY = y1 + height / 2;
     drawLine(
       ctx,
@@ -244,14 +268,14 @@ function drawBand(
       drawDirectionArrows(ctx, band, height, xPxRange, midY, band.color);
     }
 
-    band.subFeatures.forEach((subBand) => {
+    transcript.subFeatures.forEach((subBand) => {
       if (
         xScale(subBand.start) >= xPxRange[0] &&
         xScale(subBand.end) <= xPxRange[1]
       ) {
         const box = drawExon(
           ctx,
-          band,
+          transcript,
           subBand,
           xScale,
           band.color,
@@ -262,7 +286,7 @@ function drawBand(
       }
     });
 
-    hoverBoxes.push(...getIntronHoverBoxes(band, midY, xScale));
+    hoverBoxes.push(...getIntronHoverBoxes(transcript, midY, xScale));
   }
 
   // Outside the transcript branch, where it used to sit: a band that carries a
@@ -270,7 +294,7 @@ function drawBand(
   // set a label that nothing ever drew. Still only on an expanded track and
   // only at a zoom that shows detail, so a wide view does not fill with text.
   if (isExpanded && showDetails && band.label != null) {
-    drawTrackLabel(ctx, screenRange, xPxRange, band, y2);
+    drawTrackLabel(ctx, screenRange, xPxRange, band.label, y2);
   }
 
   return hoverBoxes;
@@ -302,7 +326,7 @@ function drawDirectionArrows(
 
 function drawExon(
   ctx: CanvasRenderingContext2D,
-  band: RenderBand,
+  band: TranscriptBand,
   subBand: TranscriptFeature,
   xScale: Scale,
   detailColor: string,
@@ -332,9 +356,9 @@ function drawExon(
 
 function drawTrackLabel(
   ctx: CanvasRenderingContext2D,
-  screenRange: Rng,
+  screenRange: Rng | undefined,
   pxRange: Rng,
-  band: RenderBand,
+  label: string,
   y2: number,
 ) {
   const [xPxStart, xPxEnd] = pxRange;
@@ -343,14 +367,14 @@ function drawTrackLabel(
     : xPxStart;
   const labelRangeEnd = screenRange ? Math.min(xPxEnd, screenRange[1]) : xPxEnd;
   const mid = (labelRangeStart + labelRangeEnd) / 2;
-  drawLabel(ctx, band.label, mid, y2, {
+  drawLabel(ctx, label, mid, y2, {
     textAlign: "center",
     textBaseline: "top",
   });
 }
 
 function getIntronHoverBoxes(
-  band: RenderBand,
+  band: TranscriptBand,
   midY: number,
   xScale: Scale,
 ): HoverBox[] {
@@ -373,7 +397,7 @@ function getIntronHoverBoxes(
     const x1 = xScale(intron.start);
     const x2 = xScale(intron.end);
 
-    if (!["+", "-"].includes(band.direction)) {
+    if (band.direction !== "+" && band.direction !== "-") {
       console.warn("Expected a band direction, found", band.direction);
     }
 

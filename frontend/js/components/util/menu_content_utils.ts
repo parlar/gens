@@ -136,7 +136,7 @@ export function getAnnotationContextMenuContent(
   const metaSection = getSection(
     "Metadata",
     details.metadata.map((meta) => {
-      let url = null;
+      let url: string | null = null;
       if (meta.field_name === "reference") {
         const value = meta.value as { url: string; title: string };
         url = value.url;

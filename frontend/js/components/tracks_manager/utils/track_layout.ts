@@ -3,8 +3,8 @@ import { NO_SAMPLE_TYPE_DEFAULT, TRACK_IDS } from "../../../constants";
 export function getPortableId(settings: DataTrackSettings): string {
   const trackId = settings.trackId;
 
-  let trackType = null;
-  let specifier = null;
+  let trackType: string | null = null;
+  let specifier: string | null = null;
   if (settings.sample != null) {
     const sampleType = settings.sample.sampleType || NO_SAMPLE_TYPE_DEFAULT;
 
