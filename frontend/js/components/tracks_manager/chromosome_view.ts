@@ -12,6 +12,11 @@ import { ShadowBaseElement } from "../util/shadowbaseelement";
 import { createDataTrackWrapper } from "./utils";
 import { getBandTrack, getDotTrack } from "./utils/create_tracks";
 import { requireElement } from "../../util/dom";
+import {
+  trackChromosome,
+  trackSample,
+  trackSourceId,
+} from "../../util/track_settings";
 
 const template = document.createElement("template");
 template.innerHTML = String.raw`
@@ -128,7 +133,7 @@ export class ChromosomeView extends ShadowBaseElement {
         sample: settingSample,
       };
 
-      const annotTrackSettings = [];
+      const annotTrackSettings: DataTrackSettings[] = [];
       for (const sampleAnnot of sampleAnnots) {
         const setting: DataTrackSettings = {
           trackId: `${sampleAnnot.id}-${chrom}`,
@@ -159,7 +164,7 @@ export class ChromosomeView extends ShadowBaseElement {
       ]);
 
     for (const trackSetting of this.session.chromTracks.getTracks()) {
-      const chromGroup = this.chromosomeGroups[trackSetting.chromosome];
+      const chromGroup = this.chromosomeGroups[trackChromosome(trackSetting)];
 
       const getColorBandsPlaceholder = () => [];
 
@@ -168,7 +173,11 @@ export class ChromosomeView extends ShadowBaseElement {
         track = getDotTrack(
           session,
           () => this.session.chromTracks.get(trackSetting.trackId),
-          () => getCovData(trackSetting.sample, trackSetting.chromosome),
+          () =>
+            getCovData(
+              trackSample(trackSetting),
+              trackChromosome(trackSetting),
+            ),
           (_track: DataTrack) => {
             console.warn("No context menu for chromosome view tracks");
           },
@@ -186,8 +195,8 @@ export class ChromosomeView extends ShadowBaseElement {
           this.session.chromTracks.get(trackSetting.trackId),
           () =>
             this.dataSource.getSampleAnnotationBands(
-              trackSetting.sourceId,
-              trackSetting.chromosome,
+              trackSourceId(trackSetting),
+              trackChromosome(trackSetting),
             ),
           (_track: DataTrack) => {
             console.warn("No context menu available in chromosome view");
@@ -213,9 +222,9 @@ export class ChromosomeView extends ShadowBaseElement {
       const info: ChromViewTrackInfo = {
         track,
         container: wrapper,
-        chromosome: trackSetting.chromosome,
-        sampleId: trackSetting.sample.sampleId,
-        sourceId: trackSetting.sourceId,
+        chromosome: trackChromosome(trackSetting),
+        sampleId: trackSample(trackSetting).sampleId,
+        sourceId: trackSetting.sourceId ?? null,
         type: trackSetting.trackType,
       };
       this.onAddTrack(chromGroup.samples, info);

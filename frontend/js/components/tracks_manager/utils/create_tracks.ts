@@ -10,6 +10,7 @@ import {
   getVariantContextMenuContent,
 } from "../../util/menu_content_utils";
 import { getSimpleButton } from "../../util/menu_utils";
+import { trackSample, trackSourceId } from "../../../util/track_settings";
 
 export function getTrack(
   session: GensSession,
@@ -54,7 +55,10 @@ export function getTrack(
     );
   } else if (setting.trackType == "sample-annotation") {
     const getSampleAnnotBands = () =>
-      dataSource.getSampleAnnotationBands(setting.sourceId, getChromosome());
+      dataSource.getSampleAnnotationBands(
+        trackSourceId(setting),
+        getChromosome(),
+      );
     track = getBandTrack(
       session,
       dataSource,
@@ -69,7 +73,7 @@ export function getTrack(
   } else if (setting.trackType == "variant") {
     const getSampleAnnotBands = () =>
       dataSource.getVariantBands(
-        setting.sample,
+        trackSample(setting),
         getChromosome(),
         session.profile.getVariantThreshold(),
       );
@@ -87,7 +91,7 @@ export function getTrack(
   } else if (setting.trackType == "dot-cov") {
     const getSampleCovDots = () => {
       const data = dataSource.getCovData(
-        setting.sample,
+        trackSample(setting),
         getChromosome(),
         getXRange(),
       );
@@ -105,7 +109,7 @@ export function getTrack(
     );
   } else if (setting.trackType == "dot-baf") {
     const getSampleBafDots = () =>
-      dataSource.getBafData(setting.sample, getChromosome(), getXRange());
+      dataSource.getBafData(trackSample(setting), getChromosome(), getXRange());
     track = getDotTrack(
       session,
       () => setting,
@@ -117,7 +121,7 @@ export function getTrack(
     );
   } else if (setting.trackType == "dot-hetdensity") {
     const getSampleHetDensityData = () =>
-      dataSource.getHetDensityData(setting.sample, getChromosome());
+      dataSource.getHetDensityData(trackSample(setting), getChromosome());
     track = getDotTrack(
       session,
       () => setting,
@@ -135,7 +139,7 @@ export function getTrack(
   } else if (setting.trackType == "connections") {
     const getConnections = () =>
       dataSource.getReadConnections(
-        setting.sample,
+        trackSample(setting),
         getChromosome(),
         getXRange(),
       );
@@ -269,7 +273,7 @@ export function getBandTrack(
       contextMenuFn = getVariantOpenContextMenu(
         session,
         dataSource,
-        setting.sample.sampleId,
+        trackSample(setting).sampleId,
       );
     } else if (setting.trackType == "gene-list") {
       throw new Error("Not implemented yet");

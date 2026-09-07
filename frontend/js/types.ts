@@ -603,7 +603,9 @@ interface DataTrackSettings {
   trackType: TrackType;
   height: ExpandedTrackHeight;
   showLabelWhenCollapsed: boolean;
-  yAxis?: Axis;
+  // Null and absent both mean the track has no y axis; sync_tracks writes
+  // one and the defaults leave the other.
+  yAxis?: Axis | null;
   yPadBands?: boolean;
   isExpanded: boolean;
   isHidden: boolean;

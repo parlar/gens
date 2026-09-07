@@ -49,7 +49,7 @@ export async function syncDataTrackSettings(
     () => session.profile.getCoverageRange(),
     (id: SampleIdentifier) => dataSources.hasReadConnections(id),
   );
-  const removedSampleTrackIds = [];
+  const removedSampleTrackIds: string[] = [];
   for (const combinedSampleId of removedSamples) {
     const targetSample = getSampleIdentifierFromID(combinedSampleId);
     for (const track of origTrackSettings) {
@@ -152,7 +152,7 @@ export function getGeneTrackSettings() {
 async function sampleDiff(
   samples: Sample[],
   lastRenderedSamples: Sample[],
-  getSample: (id: SampleIdentifier) => Sample,
+  getSample: (id: SampleIdentifier) => Sample | null,
   getSampleDisplayLabel: (sample: Sample) => string,
   getSampleAnnotSources: (
     id: SampleIdentifier,
@@ -230,7 +230,7 @@ export function annotationDiff(
 
 export async function getSampleTrackSettings(
   combinedSampleIds: Set<string>,
-  getSample: (id: SampleIdentifier) => Sample,
+  getSample: (id: SampleIdentifier) => Sample | null,
   getSampleDisplayLabel: (sample: Sample) => string,
   getCoverageRange: () => Rng,
   getSampleAnnotSources: (
@@ -238,10 +238,15 @@ export async function getSampleTrackSettings(
   ) => Promise<{ id: string; name: string }[]>,
   hasReadConnections: (id: SampleIdentifier) => Promise<boolean>,
 ): Promise<DataTrackSettings[]> {
-  const sampleSettings = [];
+  const sampleSettings: DataTrackSettings[] = [];
   for (const combinedId of combinedSampleIds) {
     const sampleIds = getSampleIdentifierFromID(combinedId);
     const sample = getSample(sampleIds);
+    if (sample === null) {
+      // The ids being walked come from the sample list itself, so a miss means
+      // the two have gone out of step -- not that this sample is optional.
+      throw Error(`no sample in the session matches '${combinedId}'`);
+    }
 
     const sampleTracks = await getSampleTracks(
       sample,
@@ -368,7 +373,7 @@ async function getSampleTracks(
 
   const sampleSources = await getSampleAnnotSources(sampleIdentifier);
 
-  const sampleAnnots = [];
+  const sampleAnnots: DataTrackSettings[] = [];
   for (const source of sampleSources) {
     const sampleAnnot: DataTrackSettings = {
       trackId: `${sampleKey}_${source.id}`,
