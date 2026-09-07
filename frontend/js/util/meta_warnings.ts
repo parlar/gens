@@ -64,7 +64,12 @@ export function parseChromosome(value: string): Chromosome | null {
   return null;
 }
 
-export function parseSex(value: string): Sex | null {
+export function parseSex(value: string | null | undefined): Sex | null {
+  // A sample that records no sex is not a parse failure, and warning about it
+  // once per sample buried the warning that means something.
+  if (value == null) {
+    return null;
+  }
   if (["M", "F"].includes(value)) {
     return value as Sex;
   }

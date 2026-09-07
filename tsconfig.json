@@ -8,6 +8,11 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
+    // On its own, ahead of the rest of "strict". Without it every type that
+    // says "a string" also silently means "or null", and the compiler cannot
+    // tell the two apart -- which is how a missing value travels from wherever
+    // it appeared to wherever it is finally read.
+    "strictNullChecks": true,
     "skipLibCheck": true
   }
 }

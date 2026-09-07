@@ -126,7 +126,9 @@ export class TrackMenu extends ShadowBaseElement {
     getIsCollapsed: () => boolean,
     getYAxis: (() => Rng) | null,
     setYAxis: (newAxis: Rng) => void,
-    onColorSelected: (annotId: string) => void,
+    // Null when the reader clears the selection, which the call site three
+    // lines below has always produced with `|| null`.
+    onColorSelected: (annotId: string | null) => void,
   ) {
     if (!this.isConnected) {
       throw Error("Must be connected before being initialized");

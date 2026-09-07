@@ -154,7 +154,7 @@ export async function initCanvases({
   // FIXME: Think about how to organize. Get data sources?
   const orderSamples = (samples: ApiSample[]): ApiSample[] => {
     const mainSample = samples.find((s) =>
-      mainSampleTypes.includes(s.sample_type),
+      mainSampleTypes.includes(s.sample_type ?? ""),
     );
     if (mainSample != null) {
       const index = samples.indexOf(mainSample);
@@ -178,9 +178,9 @@ export async function initCanvases({
       caseId: sample.case_id,
       displayCaseId: sample.display_case_id,
       sampleId: sample.sample_id,
-      sampleType: sample.sample_type,
+      sampleType: sample.sample_type ?? undefined,
       genomeBuild: sample.genome_build,
-      sex: parsedSex,
+      sex: parsedSex ?? undefined,
       meta: sample.meta,
     };
     return result;
@@ -351,7 +351,9 @@ function initializeInputControls(
   settingsPage: SettingsMenu,
   infoPage: InfoMenu,
   helpPage: HelpMenu,
-  getSearchResults: (query: string) => Promise<ApiSearchResult>,
+  // Null for a query that matches no region. input_controls has always said
+  // so on its own parameter; this one did not.
+  getSearchResults: (query: string) => Promise<ApiSearchResult | null>,
   onOpenBafHistogram: () => void,
   onOpenReadConnections: () => void,
   onOpenGenePanel: () => void,

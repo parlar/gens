@@ -59,7 +59,9 @@ export class IconButton extends ShadowBaseElement {
   }
 
   public get icon(): string {
-    return this.getAttribute("icon");
+    // Empty before the attribute is set, which is what every reader compares
+    // against anyway.
+    return this.getAttribute("icon") ?? "";
   }
 
   public set disabled(value: boolean) {

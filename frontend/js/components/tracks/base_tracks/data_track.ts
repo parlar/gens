@@ -332,7 +332,9 @@ export abstract class DataTrack extends CanvasTrack {
         this.getYScale(),
         this.dimensions,
         settings,
-        settings.yAxis,
+        // The same axis again: renderYAxis reads its range from the second
+        // argument and its highlights from the last.
+        yAxis,
       );
     }
 

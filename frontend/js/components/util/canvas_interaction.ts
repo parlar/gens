@@ -76,6 +76,12 @@ export function setCanvasPointerCursor(
       y: number;
     } | null,
   ) {
+    // Null until the pointer has been over the canvas once. The keydown
+    // listener calls this too, so a modifier pressed before the first move
+    // arrived here and read x off nothing.
+    if (offset === null) {
+      return;
+    }
     if (markerModeOn()) {
       if (offset.x < markerArea[0] || offset.x > markerArea[1]) {
         // FIXME: CSS based instead here

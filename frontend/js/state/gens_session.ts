@@ -232,7 +232,7 @@ export class GensSession {
           matchedThreshold,
           val.row_name,
           val.value,
-          sample.sex,
+          sample.sex ?? null,
         );
 
         if (warning) {

@@ -501,11 +501,16 @@ export class TrackView extends ShadowBaseElement {
       const track = this.dataTracks.find(
         (track) => track.track.id == settings.targetTrackId,
       );
-      // Its height too. Without this the shortcut drew the track at whatever
-      // height it last had, so a resize looked like it did nothing at all.
-      this.applyTrackHeight(track);
-      track.track.render(settings);
-      return;
+      // A target not in the list has no single-track shortcut to take -- a
+      // track just added, say. Falling through builds it; reading through the
+      // miss threw instead.
+      if (track != null) {
+        // Its height too. Without this the shortcut drew the track at whatever
+        // height it last had, so a resize looked like it did nothing at all.
+        this.applyTrackHeight(track);
+        track.track.render(settings);
+        return;
+      }
     }
 
     const currIds = new Set(

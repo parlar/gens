@@ -142,7 +142,7 @@ export class DotTrack extends DataTrack {
       if (x2 - x1 > 120) {
         drawLabel(
           this.ctx,
-          widest.label,
+          widest.label ?? "",
           (x1 + x2) / 2,
           this.dimensions.height / 2,
           { textAlign: "center", textColor: STYLE.colors.darkGray },

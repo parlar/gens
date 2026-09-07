@@ -12,7 +12,9 @@ describe("BAF histogram panel", () => {
     { sampleId: "parent", caseId: "case", genomeBuild: 38 },
   ];
 
-  let lastPick: ((region: Region) => void) | null = null;
+  let lastPick: (region: Region) => void = () => {
+    throw new Error("the panel never asked for a region to be picked");
+  };
 
   const flush = async () => {
     jest.advanceTimersByTime(150);
@@ -88,7 +90,9 @@ describe("BAF histogram panel", () => {
   });
 
   test("ignores a stale response after navigation and aborts its request", async () => {
-    let resolveOld: (data: ApiCoverageDot[]) => void;
+    let resolveOld: (data: ApiCoverageDot[]) => void = () => {
+      throw new Error("the first request was never started");
+    };
     loadData.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

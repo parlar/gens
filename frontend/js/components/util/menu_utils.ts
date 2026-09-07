@@ -113,8 +113,8 @@ export function getURLRow(text: string) {
     }
 
     const pmid_match = match[groups.pmid];
-    let url: string;
-    let label: string;
+    let url: string | null = null;
+    let label: string | null = null;
     let prefix: string | null = null;
     if (pmid_match) {
       const pmid = match[groups.pmidId];
@@ -146,6 +146,13 @@ export function getURLRow(text: string) {
       const rcvId = match[groups.rcv];
       label = rcvId;
       url = `https://www.ncbi.nlm.nih.gov/clinvar/${rcvId}`;
+    }
+    if (url === null || label === null) {
+      // The text matched, but on none of the groups a link is built from.
+      // Keeping it as plain text beats a link whose label reads "undefined".
+      span.appendChild(document.createTextNode(match[0]));
+      lastIndex = combined_regex.lastIndex;
+      continue;
     }
     if (prefix != null) {
       const prefixSpan = document.createTextNode(prefix);

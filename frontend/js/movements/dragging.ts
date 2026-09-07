@@ -84,7 +84,11 @@ export function setupDragging(
 
       document.body.style.cursor = "";
 
-      onDragEnd([dragStartX, dragEndX]);
+      // Null when the space key went down after the pointer did, so no drag
+      // was ever started. Panning from it moved the view by NaN.
+      if (dragStartX !== null) {
+        onDragEnd([dragStartX, dragEndX]);
+      }
     }
 
     dragStartX = null;

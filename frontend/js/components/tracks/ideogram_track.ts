@@ -122,7 +122,9 @@ export class IdeogramTrack extends CanvasTrack {
 
     const targets = renderBands.map((band) => {
       return {
-        label: band.label,
+        // Stain bands are drawn from the karyotype, which names every one;
+        // an unnamed band gets an empty tooltip rather than "undefined".
+        label: band.label ?? "",
         box: {
           x1: xScale(band.start),
           x2: xScale(band.end),

@@ -495,10 +495,18 @@ export class SettingsMenu extends ShadowBaseElement {
     this.variantThresholdInput.value = `${this.session.profile.getVariantThreshold()}`;
 
     this.addElementListener(this.addSampleButton, "click", () => {
-      const caseId_sampleId = this.sampleSelect.getValue().value;
-
-      const sampleIdObj = getSampleIdentifierFromID(caseId_sampleId);
+      // Nothing selected, or a selection naming no sample the session knows:
+      // either way there is nothing to add, and reading .value off the null was
+      // how that ended before.
+      const choice = this.sampleSelect.getValue();
+      if (choice === null) {
+        return;
+      }
+      const sampleIdObj = getSampleIdentifierFromID(choice.value);
       const sample = this.session.getSample(sampleIdObj);
+      if (sample === null) {
+        return;
+      }
       this.onAddSample(sample);
     });
 
@@ -541,11 +549,17 @@ export class SettingsMenu extends ShadowBaseElement {
     );
 
     this.addElementListener(this.applyMainSample, "click", () => {
-      const mainSample = this.mainSampleSelect.getValue().value;
+      const choice = this.mainSampleSelect.getValue();
+      if (choice === null) {
+        return;
+      }
       const samples = this.getCurrentSamples();
       const targetSample = samples.find((sample) => {
-        return getSampleKey(sample) == mainSample;
+        return getSampleKey(sample) == choice.value;
       });
+      if (targetSample === undefined) {
+        return;
+      }
       this.onApplyMainSample(targetSample);
     });
 

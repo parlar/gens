@@ -37,7 +37,15 @@ export function getOpenTrackContextMenu(
       },
       () => track.getIsHidden(),
       () => track.getIsExpanded(),
-      isDotTrack ? () => track.getYAxis().range : null,
+      isDotTrack
+        ? () => {
+            const yAxis = track.getYAxis();
+            if (yAxis === null) {
+              throw Error(`${track.label}: a dot track with no y axis`);
+            }
+            return yAxis.range;
+          }
+        : null,
       (newY: Rng) => {
         track.setYAxis(newY);
         render({});

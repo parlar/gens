@@ -502,9 +502,11 @@ interface _ChromosomePos {
   x_ampl: number; // What is this?
 }
 
+// Nothing imports this. The index signature promised a string for every key
+// while default promised only maybe one, which cannot both hold.
 interface _ColorSchema {
   default?: string;
-  [key: string]: string;
+  [key: string]: string | undefined;
 }
 
 type Point = {

@@ -50,7 +50,9 @@ export function getChromosomeShape(
   ctx: CanvasRenderingContext2D,
   yPad: number,
   dim: Dimensions,
-  centromerePx: { start: number; end: number; center: number },
+  // Null for a chromosome whose centromere the data does not place. The
+  // drawing below already branches on it.
+  centromerePx: { start: number; end: number; center: number } | null,
   color: string,
   lineColor: string = STYLE.colors.black,
   xScale: Scale,
@@ -61,7 +63,11 @@ export function getChromosomeShape(
   const bevelWidth = Math.round(dim.width * style.endBevelProportion);
 
   // Calculate dimensions of the centromere
-  const centromereLength = centromerePx.end - centromerePx.start;
+  // Zero where there is no centromere, which the branches below skip anyway.
+  // Subtracting through the null gave NaN and carried it into the radius.
+  const centromereLength = centromerePx
+    ? centromerePx.end - centromerePx.start
+    : 0;
   const centromereIndent = Math.round(
     dim.height * style.centromereIndentProportion,
   );

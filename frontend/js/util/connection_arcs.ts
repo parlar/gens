@@ -9,15 +9,30 @@ import { ReadConnection, ReadEndpoint, ReadEvidence } from "./read_connections";
  * that is in view and names where its partner went, because an arc to a place
  * the reader cannot see would imply a distance the track does not have.
  */
-export interface ArcShape {
-  connection: ReadConnection;
-  kind: "arc" | "stub";
-  /** Base position of the visible end, and of the partner for an arc. */
-  from: number;
-  to: number | null;
-  /** Where the partner is, for a stub. Empty for an arc. */
-  awayLabel: string;
-}
+/**
+ * An arc joins two ends both in view; a stub marks one end whose partner is
+ * elsewhere. Written as one shape, "to" had to be nullable for the stub's sake
+ * and the drawing code then read it on the arc path, where it never is null.
+ * Split on kind, the compiler carries that through the branch that tests it.
+ */
+export type ArcShape =
+  | {
+      connection: ReadConnection;
+      kind: "arc";
+      /** Base positions of the two ends. */
+      from: number;
+      to: number;
+      awayLabel: "";
+    }
+  | {
+      connection: ReadConnection;
+      kind: "stub";
+      /** Base position of the visible end. */
+      from: number;
+      to: null;
+      /** Where the partner is. */
+      awayLabel: string;
+    };
 
 /** Midpoint of an endpoint interval, which is what the arc is anchored to. */
 export function endpointCentre(endpoint: ReadEndpoint): number {

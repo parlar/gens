@@ -102,7 +102,8 @@ export class BafHistogramPanel extends ShadowBaseElement {
   private data: ApiCoverageDot[] | null = null;
   private histogram: BafHistogram | null = null;
   private region: Region;
-  private sample: Sample;
+  // Unset until a sample is chosen, and again if the chosen one is gone.
+  private sample: Sample | undefined;
 
   constructor() {
     super(template);
@@ -353,7 +354,7 @@ export class BafHistogramPanel extends ShadowBaseElement {
   }
 
   private exportCsv() {
-    if (!this.histogram || this.exportButton.disabled) {
+    if (!this.histogram || !this.sample || this.exportButton.disabled) {
       return;
     }
     const rows = [

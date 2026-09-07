@@ -121,7 +121,9 @@ describe("Compact connection panel", () => {
   });
 
   test("aborts old requests and ignores stale responses", async () => {
-    let resolveOld: (value: ReadEvidence) => void;
+    let resolveOld: (value: ReadEvidence) => void = () => {
+      throw new Error("the first request was never started");
+    };
     loadData.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

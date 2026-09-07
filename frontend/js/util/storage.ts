@@ -76,4 +76,6 @@ function loadFromBrowserSession(key: string): null | StorageValue {
   } catch (e) {
     console.warn(`Failed to load key ${key}`, e);
   }
+  // Unreadable storage reads the same as empty storage to every caller.
+  return null;
 }

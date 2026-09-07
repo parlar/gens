@@ -58,7 +58,11 @@ export class OverviewTrack extends CanvasTrack {
     this.yAxis = yAxis;
 
     this.staticBuffer = document.createElement("canvas");
-    this.staticCtx = this.staticBuffer.getContext("2d");
+    const staticCtx = this.staticBuffer.getContext("2d");
+    if (staticCtx === null) {
+      throw Error("the overview track could not open a 2d drawing context");
+    }
+    this.staticCtx = staticCtx;
   }
 
   initialize() {
@@ -104,6 +108,12 @@ export class OverviewTrack extends CanvasTrack {
     if (dataChanged) {
       this.renderData = await this.getRenderData();
     }
+    // firstTime forces the fetch above, so this holds by the time anything is
+    // drawn; the local is what lets the rest of the method say so.
+    const renderData = this.renderData;
+    if (renderData === null) {
+      return;
+    }
 
     super.syncDimensions();
 
@@ -129,7 +139,7 @@ export class OverviewTrack extends CanvasTrack {
         this.pxRanges,
         metrics.yScale,
         this.yRange,
-        this.renderData.dotsPerChrom,
+        renderData.dotsPerChrom,
         this.chromSizes,
         this.drawLabels,
         this.dimensions,
@@ -156,7 +166,7 @@ export class OverviewTrack extends CanvasTrack {
     const shiftDown = STYLE.overviewTrack.titleSpace + SIZES.xxs;
     drawLabel(
       this.ctx,
-      this.renderData.sampleLabel,
+      renderData.sampleLabel,
       STYLE.tracks.textPadding + shiftRight,
       STYLE.tracks.textPadding + shiftDown,
       {

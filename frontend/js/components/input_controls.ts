@@ -342,9 +342,14 @@ async function queryRegionOrGene(
     }
     chrom = searchResult.chromosome as Chromosome;
 
-    // Add visual padding at edges
-    const rawRange = extendRange([searchResult.start, searchResult.end]);
-    range = clampRange(rawRange, 1, getCurrentChromSize());
+    if (searchResult.start !== null && searchResult.end !== null) {
+      // Add visual padding at edges
+      const rawRange = extendRange([searchResult.start, searchResult.end]);
+      range = clampRange(rawRange, 1, getCurrentChromSize());
+    }
+    // A result with no coordinates names a chromosome rather than a region, and
+    // leaving range unset is how the branches above say "the whole chromosome".
+    // Padding the nulls produced a NaN range and a blank view.
   }
   onChangePosition(chrom, range);
 }
