@@ -167,6 +167,13 @@ export class BandTrack extends DataTrack {
   }
 
   setExpandedTrackHeight(numberLanes: number, showDetails: boolean) {
+    // A band track sizes itself to how many lanes its bands need. Once the
+    // reader has dragged this track's boundary, that would undo the drag on
+    // every redraw, so their height wins.
+    if (this.getSettings().height.userResized) {
+      this.syncHeight();
+      return;
+    }
     const style = STYLE.bandTrack;
     const height = STYLE.tracks.trackHeight.m;
     const expandedHeight = getTrackHeight(

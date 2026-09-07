@@ -17,6 +17,7 @@ import {
 } from "./utils";
 import { DataTrack } from "../tracks/base_tracks/data_track";
 import { setupDrag, setupDragging } from "../../movements/dragging";
+import { resizedHeight } from "../../util/track_resize";
 import { GensSession } from "../../state/gens_session";
 import { getLinearScale } from "../../draw/render_utils";
 import { OverviewTrack } from "../tracks/overview_track";
@@ -467,12 +468,41 @@ export class TrackView extends ShadowBaseElement {
     }
   }
 
+  /**
+   * Give one track the height it should have.
+   *
+   * The shared settings are pushed onto every track, except one the reader has
+   * dragged: that one keeps its own, which is the whole point of the drag.
+   */
+  private applyTrackHeight(track: DataTrackWrapper) {
+    const trackHeights = this.session.profile.getTrackHeights();
+    const settingsTrack = this.session.tracks.get(track.track.id);
+    if (settingsTrack?.height.userResized) {
+      track.track.syncOwnHeight();
+    } else if (bandTrackTypes.includes(track.track.trackType)) {
+      track.track.setHeights(trackHeights.bandCollapsed);
+    } else if (
+      dotTrackTypes.includes(track.track.trackType) ||
+      // Arcs need vertical room to separate, so the lane follows the dot track
+      // heights the reader has already chosen rather than the shorter band one.
+      connectionsTrackTypes.includes(track.track.trackType)
+    ) {
+      track.track.setHeights(
+        trackHeights.dotCollapsed,
+        trackHeights.dotExpanded,
+      );
+    }
+  }
+
   renderTracks(settings: RenderSettings) {
     // Single track render, skip the full diff
     if (settings.targetTrackId != null) {
       const track = this.dataTracks.find(
         (track) => track.track.id == settings.targetTrackId,
       );
+      // Its height too. Without this the shortcut drew the track at whatever
+      // height it last had, so a resize looked like it did nothing at all.
+      this.applyTrackHeight(track);
       track.track.render(settings);
       return;
     }
@@ -510,7 +540,15 @@ export class TrackView extends ShadowBaseElement {
         () => this.session.pos.getXRange(),
       );
 
-      const trackWrapper = makeTrackContainer(track, null);
+      const onResize = (heightPx: number) => {
+        this.session.tracks.setResizedHeight(
+          track.id,
+          resizedHeight(heightPx, 0),
+        );
+        this.requestRender({ saveLayoutChange: true, targetTrackId: track.id });
+      };
+
+      const trackWrapper = makeTrackContainer(track, null, onResize);
       this.dataTracks.push(trackWrapper);
       this.tracksContainer.appendChild(trackWrapper.container);
       track.initialize();
@@ -521,31 +559,12 @@ export class TrackView extends ShadowBaseElement {
       this.tracksContainer.removeChild(match.container);
     }
 
-    const trackHeights = this.session.profile.getTrackHeights();
     for (const track of this.dataTracks) {
       const settingsTrack = this.session.tracks.get(track.track.id);
       if (settingsTrack != null) {
         track.track.label = settingsTrack.trackLabel;
       }
-      // Assigning track heights
-      // FIXME: Consider approaches here. Might be that the track heights
-      // should be part of the render object.
-      if (bandTrackTypes.includes(track.track.trackType)) {
-        track.track.setHeights(trackHeights.bandCollapsed);
-      } else if (dotTrackTypes.includes(track.track.trackType)) {
-        track.track.setHeights(
-          trackHeights.dotCollapsed,
-          trackHeights.dotExpanded,
-        );
-      } else if (connectionsTrackTypes.includes(track.track.trackType)) {
-        // Arcs need vertical room to separate, so the lane follows the dot
-        // track heights the reader has already chosen rather than the shorter
-        // band height.
-        track.track.setHeights(
-          trackHeights.dotCollapsed,
-          trackHeights.dotExpanded,
-        );
-      }
+      this.applyTrackHeight(track);
       track.track.render(settings);
     }
   }
@@ -561,7 +580,9 @@ export class TrackView extends ShadowBaseElement {
     if (this.colorBandsCoverage === null) {
       return true;
     }
-    if (this.colorBandsCoverage.chromosome !== this.sessionPos.getChromosome()) {
+    if (
+      this.colorBandsCoverage.chromosome !== this.sessionPos.getChromosome()
+    ) {
       return true;
     }
     const [start, end] = this.sessionPos.getXRange();

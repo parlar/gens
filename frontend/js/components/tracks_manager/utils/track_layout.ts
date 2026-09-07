@@ -44,6 +44,9 @@ export function getPortableId(settings: DataTrackSettings): string {
   } else if (settings.trackType == "gene") {
     trackType = TRACK_IDS.genes;
     specifier = "";
+  } else if (settings.trackType == "homology") {
+    trackType = TRACK_IDS.homology;
+    specifier = "";
   } else if (settings.trackType == "annotation") {
     trackType = TRACK_IDS.annot;
     specifier = trackId;

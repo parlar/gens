@@ -446,7 +446,11 @@ function addSettingsPageSources(
   };
   const setTrackHeights = (trackHeights: TrackHeights) => {
     session.profile.setTrackHeights(trackHeights);
-    render({ reloadData: true });
+    // A track carrying a height the reader dragged would ignore these, so the
+    // control would visibly do nothing on exactly the tracks they had been
+    // adjusting. Applying here means the shared setting takes over again.
+    session.tracks.clearResizedHeights();
+    render({ reloadData: true, saveLayoutChange: true });
   };
   const onColorByChange = async (annotIds: string[]) => {
     session.profile.setColorAnnotations(annotIds);

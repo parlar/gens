@@ -77,6 +77,17 @@ export abstract class DataTrack extends CanvasTrack {
     this.syncHeight();
   }
 
+  /**
+   * Take the height already on the settings, without being told a new one.
+   *
+   * For a track the reader has resized by hand: the shared height settings are
+   * pushed onto every track on every render, and this is what the resized ones
+   * get instead.
+   */
+  public syncOwnHeight() {
+    this.syncHeight();
+  }
+
   public getIsHidden() {
     return this.getSettings().isHidden;
   }

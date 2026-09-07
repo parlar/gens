@@ -6,6 +6,7 @@ import {
 import { getPortableId } from "../components/tracks_manager/utils/track_layout";
 import { COLORS, TRACK_IDS } from "../constants";
 import { getMetaWarnings } from "../util/meta_warnings";
+import { resizedHeights } from "../util/track_resize";
 import { formatCaseLabel, generateID, normalizeAlias } from "../util/utils";
 import { SessionProfiles } from "./session_helpers/session_layouts";
 import { SessionPosition } from "./session_helpers/session_position";
@@ -147,7 +148,10 @@ export class GensSession {
     return this.caseDisplayAliases[caseId] ?? null;
   }
 
-  public setSessionCaseDisplayAlias(caseId: string, alias: string | null): void {
+  public setSessionCaseDisplayAlias(
+    caseId: string,
+    alias: string | null,
+  ): void {
     const normalizedAlias = normalizeAlias(alias);
     if (normalizedAlias == null) {
       delete this.caseDisplayAliases[caseId];
@@ -181,7 +185,12 @@ export class GensSession {
       this.sampleDisplayAliases[aliasKey] = normalizedAlias;
     }
 
-    this.applySampleAliasToSamples(caseId, sampleId, genomeBuild, normalizedAlias);
+    this.applySampleAliasToSamples(
+      caseId,
+      sampleId,
+      genomeBuild,
+      normalizedAlias,
+    );
   }
 
   public getMeta(
@@ -277,7 +286,9 @@ export class GensSession {
     const colorAnnotationIds = this.profile
       .getColorAnnotations()
       .filter((id) => availableAnnotationIds.has(id));
-    if (colorAnnotationIds.length !== this.profile.getColorAnnotations().length) {
+    if (
+      colorAnnotationIds.length !== this.profile.getColorAnnotations().length
+    ) {
       this.profile.setColorAnnotations(colorAnnotationIds);
     }
   }
@@ -576,5 +587,6 @@ function buildTrackLayoutFromTracks(tracks: DataTrackSettings[]): TrackLayout {
     order: Array.from(order),
     hidden,
     expanded,
+    heights: resizedHeights(tracks),
   };
 }

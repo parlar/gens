@@ -14,6 +14,7 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Track heights can be set by dragging a track's lower boundary. The drag sets that track alone, survives a reload, and is remembered per track rather than per kind, so one sample's coverage can be made tall without moving its five relatives. Applying the shared heights from the settings menu clears the dragged ones, so that control still works
 - Stepping through a gene panel now keeps the current zoom and centres each gene, instead of reframing the window to the gene's own extent. Walking a panel is usually a comparison, and reframing at every step made a coverage dip look deeper or shallower purely because the neighbouring gene was a different size. A "Keep zoom" checkbox in the panel turns it off, and the choice is remembered
 - Draw a band's label whenever the band carries one and the track is expanded, rather than only for transcripts, so a band track other than the gene track can say what its bands are; and stroke a band's own edge colour when it asks for one by setting a width
 - Draw the heterozygote density track as bars over each 20 kb bin instead of one dot per bin, shade every bar by the coverage measured over that same bin, and repeat that shade as an unbroken strip under the plot so a bin whose count is ordinary still shows its coverage. A bin empty of heterozygous sites is produced by a heterozygous deletion and by a run of homozygosity alike, and the shading is what separates them; it does not separate a deletion from a coverage dropout, and it carries no threshold and no call
@@ -23,6 +24,9 @@ About changelog [here](https://keepachangelog.com/en/1.0.0/)
 - Remove `MANIFEST.in`, which described packaging for setuptools while the build backend is hatchling, so it had no effect on what was distributed
 
 ### Fixed
+
+- Give the Homology track a portable layout id. Without one, saving the track layout raised, so every reorder, expand or resize silently stopped the whole layout being saved
+
 
 - Show the multi-chromosome view's data for the sample its heading names, rebuilding the tracks when the main sample changes; they were built once for whichever sample came first, so after switching the view showed one sample's coverage under another's label
 - Keep every selected site inside a gVCF reference block, instead of only one starting exactly on the block, which dropped most of the homozygous baseline

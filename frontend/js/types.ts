@@ -565,6 +565,14 @@ interface DragCallbacks {
 interface ExpandedTrackHeight {
   collapsedHeight: number;
   expandedHeight?: number;
+  /**
+   * Set once the reader has dragged this track's boundary.
+   *
+   * Separates a height that was chosen from one the shared settings produced.
+   * A chosen height is written to the saved layout, and stops a band track
+   * recomputing its expanded height from its lane count.
+   */
+  userResized?: boolean;
 }
 
 interface DataTrackSettings {
@@ -681,6 +689,13 @@ type TrackLayout = {
   order: string[];
   hidden: Record<string, boolean>;
   expanded: Record<string, boolean>;
+  /**
+   * Heights the reader set by dragging, keyed by concrete track id.
+   *
+   * Optional so a layout saved before this existed still loads. Keyed
+   * differently from the rest of the layout on purpose: see applySavedHeights.
+   */
+  heights?: Record<string, ExpandedTrackHeight>;
 };
 
 interface TableCell {

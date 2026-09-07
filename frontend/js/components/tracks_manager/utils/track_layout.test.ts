@@ -50,3 +50,49 @@ describe("getPortableId", () => {
     expect(() => getPortableId(settings("gene"))).toThrow();
   });
 });
+
+/**
+ * Every track type has to have a portable id. A type that is missing one throws
+ * when the layout is saved, which is on every reorder, expand and resize -- so
+ * the whole layout stops being saved, from a track the reader never touched.
+ */
+test("every track type can be given a portable id", () => {
+  const trackTypes: TrackType[] = [
+    "dot-cov",
+    "dot-baf",
+    "dot-hetdensity",
+    "connections",
+    "variant",
+    "sample-annotation",
+    "gene",
+    "homology",
+  ];
+  const sample = {
+    sampleId: "NA12879",
+    caseId: "case",
+    genomeBuild: 38,
+    sampleType: "proband",
+  } as Sample;
+
+  for (const trackType of trackTypes) {
+    const needsSample = ![
+      "gene",
+      "homology",
+      "position",
+      "gene-list",
+      "annotation",
+    ].includes(trackType);
+    const settings = {
+      trackId: `id-${trackType}`,
+      trackLabel: trackType,
+      trackType,
+      sample: needsSample ? sample : undefined,
+      height: { collapsedHeight: 20 },
+      showLabelWhenCollapsed: true,
+      isExpanded: false,
+      isHidden: false,
+    } as DataTrackSettings;
+
+    expect(() => getPortableId(settings)).not.toThrow();
+  }
+});

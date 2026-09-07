@@ -1,4 +1,5 @@
 import { getPortableId } from "../../components/tracks_manager/utils/track_layout";
+import { applyResize, applySavedHeights } from "../../util/track_resize";
 
 export class Tracks {
   private tracks: DataTrackSettings[];
@@ -54,6 +55,24 @@ export class Tracks {
   public setExpandedHeight(trackId: string, trackHeight: number) {
     const setting = this.get(trackId);
     setting.height.expandedHeight = trackHeight;
+  }
+
+  /** Record a height the reader dragged, on whichever state is showing. */
+  public setResizedHeight(trackId: string, trackHeight: number) {
+    applyResize(this.get(trackId), trackHeight);
+  }
+
+  /**
+   * Forget every dragged height.
+   *
+   * Used when the shared height settings are applied from the menu: a track
+   * carrying its own height would ignore them, and a control that visibly does
+   * nothing is worse than losing a drag.
+   */
+  public clearResizedHeights() {
+    for (const track of this.tracks) {
+      delete track.height.userResized;
+    }
   }
 
   public setTracks(tracks: DataTrackSettings[]) {
@@ -137,11 +156,14 @@ export function getArrangedTracks(
     const tracksHidden = layout.hidden[layoutId];
     const tracksExpanded = layout.expanded[layoutId];
 
-    const updatedTracks = tracks.map((track) => {
-      track.isHidden = tracksHidden;
-      track.isExpanded = tracksExpanded;
-      return track;
-    });
+    const updatedTracks = applySavedHeights(
+      tracks.map((track) => {
+        track.isHidden = tracksHidden;
+        track.isExpanded = tracksExpanded;
+        return track;
+      }),
+      layout.heights,
+    );
 
     orderedTracks.push(...updatedTracks);
     if (tracks.length > 0) {
