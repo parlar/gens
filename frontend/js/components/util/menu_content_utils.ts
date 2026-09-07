@@ -4,7 +4,9 @@ import { getContainer, getEntry, getSection, getURLRow } from "./menu_utils";
 export interface InfoField {
   key: string;
   value: string | number | null;
-  url?: string;
+  // Null where the source has no link for this field, which reads the same
+  // as absent to getEntry: both leave the value as plain text.
+  url?: string | null;
   color?: string;
 }
 
@@ -13,7 +15,7 @@ export function getVariantContextMenuContent(
   details: ApiVariantDetails,
   variantUrl: string | null,
 ): HTMLDivElement[] {
-  const sample = details.samples.find((s) => s.sample_id === sampleId);
+  const sample = (details.samples ?? []).find((s) => s.sample_id === sampleId);
   const info: InfoField[] = [
     { key: "Range", value: `${details.start} - ${details.end}` },
     {
@@ -42,7 +44,7 @@ export function getVariantContextMenuContent(
       key: "Split read",
       value: sample?.split_read ?? null,
     },
-    { key: "CADD score", value: details.cadd_score },
+    { key: "CADD score", value: details.cadd_score ?? null },
     {
       key: "Category",
       value: `${details.category} (${details.sub_category})`,
@@ -67,7 +69,7 @@ export function getVariantContextMenuContent(
 
   const rankScoreParts = getSection(
     "Rank score parts",
-    details.rank_score_results.map((part) => {
+    (details.rank_score_results ?? []).map((part) => {
       return getContainer("row", `${part.category}: ${part.score}`);
     }),
   );
@@ -80,7 +82,9 @@ export function getGenesContextMenuContent(
   id: string,
   details: ApiGeneDetails,
 ): HTMLDivElement[] {
-  const info: { key: string; value: string }[] = [
+  // These fields are nullable on the API, and getEntry already renders a
+  // missing one as "N/A"; the narrower shape here just could not say so.
+  const info: InfoField[] = [
     { key: "Range", value: `${details.start} - ${details.end}` },
     {
       key: "Length",
@@ -124,7 +128,7 @@ export function getAnnotationContextMenuContent(
 
   const commentSection = getSection(
     "Comments",
-    details.comments.flatMap((c) =>
+    (details.comments ?? []).flatMap((c) =>
       c.comment
         .replace('"', "")
         .split("; ")
@@ -135,7 +139,7 @@ export function getAnnotationContextMenuContent(
 
   const metaSection = getSection(
     "Metadata",
-    details.metadata.map((meta) => {
+    (details.metadata ?? []).map((meta) => {
       let url: string | null = null;
       if (meta.field_name === "reference") {
         const value = meta.value as { url: string; title: string };

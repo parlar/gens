@@ -3,6 +3,18 @@ import { EVIDENCE_WINDOW } from "../util/read_connections";
 import { API } from "./api";
 import { getRenderDataSource } from "./data_source";
 
+/**
+ * A field the track data only carries in some states, when this test is in one
+ * of those states. Failing here names the field, rather than letting the next
+ * line read a property of undefined.
+ */
+function present<T>(value: T | undefined, what: string): T {
+  if (value === undefined) {
+    throw new Error(`expected the track data to carry ${what}`);
+  }
+  return value;
+}
+
 describe("heterozygote density", () => {
   const sample = { sampleId: "NA12879", caseId: "pedigree", genomeBuild: 38 };
   const getHetDensity = jest.fn();
@@ -28,8 +40,9 @@ describe("heterozygote density", () => {
 
     expect(getHetDensity).not.toHaveBeenCalled();
     expect(data.dots).toEqual([]);
-    expect(data.shaded).toHaveLength(1);
-    expect(data.shaded[0].label).toMatch(/Zoom in/);
+    const shaded = present(data.shaded, "shaded ranges");
+    expect(shaded).toHaveLength(1);
+    expect(shaded[0].label).toMatch(/Zoom in/);
   });
 
   test("asks for a region at the limit", async () => {
@@ -44,11 +57,12 @@ describe("heterozygote density", () => {
 
     expect(getHetDensity).toHaveBeenCalledTimes(1);
     expect(data.shaded).toEqual([]);
-    expect(data.bars).toHaveLength(1);
-    expect(data.bars[0].y).toBe(0);
+    const bars = present(data.bars, "bars");
+    expect(bars).toHaveLength(1);
+    expect(bars[0].y).toBe(0);
     // Bins are drawn to their own width, not as a point at the midpoint.
-    expect(data.bars[0].start).toBe(1);
-    expect(data.bars[0].end).toBe(20000);
+    expect(bars[0].start).toBe(1);
+    expect(bars[0].end).toBe(20000);
   });
 
   test("carries the coverage measured over each bin into the drawn bar", async () => {
@@ -65,8 +79,9 @@ describe("heterozygote density", () => {
     const source = sourceOver(1_000_000);
     const data = await source.getHetDensityData(sample, "1");
 
-    expect(data.bars[0].y).toBe(data.bars[1].y);
-    expect(data.bars[0].color).not.toBe(data.bars[1].color);
+    const bars = present(data.bars, "bars");
+    expect(bars[0].y).toBe(bars[1].y);
+    expect(bars[0].color).not.toBe(bars[1].color);
   });
 
   test("says so when the chromosome cannot support a scale", async () => {
@@ -79,7 +94,8 @@ describe("heterozygote density", () => {
     const data = await source.getHetDensityData(sample, "1");
 
     expect(data.dots).toEqual([]);
-    expect(data.shaded[0].label).toMatch(/Too few heterozygous sites/);
+    const shaded = present(data.shaded, "shaded ranges");
+    expect(shaded[0].label).toMatch(/Too few heterozygous sites/);
   });
 });
 

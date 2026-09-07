@@ -371,7 +371,8 @@ interface RenderDataSource {
     id: SampleIdentifier,
   ) => Promise<Record<string, RenderDot[]>>;
 
-  getVariantURL: (doc_id: string) => string;
+  // Null where the session has no Scout instance to link to.
+  getVariantURL: (doc_id: string) => string | null;
 }
 
 type Rng = [number, number];

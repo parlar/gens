@@ -213,9 +213,11 @@ export function getRenderDataSource(
     }
     const [homology, connections] = await Promise.all([
       api.getHomology(id.genomeBuild, chrom, xRange),
-      getReadConnections(id, chrom, xRange).catch(
-        () => ({ connections: [] }) as ConnectionsTrackData,
-      ),
+      getReadConnections(id, chrom, xRange).catch(() => ({
+        connections: [],
+        truncated: false,
+        unavailable: null,
+      })),
     ]);
     return homologyBands(homology.pairs, connections.connections, id.sampleId);
   };
@@ -333,7 +335,9 @@ export function parseAnnotations(
         // id: `${annot.start}_${annot.end}_${annot.color}_${label}`,
         start: annot.start,
         end: annot.end,
-        color: annot.color,
+        // Null on the API where the record names no colour. Left as absent so
+        // the band track applies the same grey the backend defaults to.
+        color: annot.color ?? undefined,
         label,
         hoverInfo: `${annot.name}`,
       };
@@ -353,7 +357,9 @@ export function parseSampleAnnotations(
         id: annot.record_id,
         start: annot.start,
         end: annot.end,
-        color: annot.color,
+        // Null on the API where the record names no colour. Left as absent so
+        // the band track applies the same grey the backend defaults to.
+        color: annot.color ?? undefined,
         label,
         hoverInfo: `${annot.name}`,
       };
@@ -421,10 +427,10 @@ export function parseVariants(variants: ApiSimplifiedVariant[]): RenderBand[] {
     const id = variant.document_id;
     const length = variant.end - variant.start;
 
+    const subCategory = variant.sub_category;
     const hetHomColors =
-      VARIANT_COLORS[variant.sub_category] != undefined
-        ? VARIANT_COLORS[variant.sub_category]
-        : VARIANT_COLORS.default;
+      (subCategory != null ? VARIANT_COLORS[subCategory] : undefined) ??
+      VARIANT_COLORS.default;
 
     const color =
       variant.genotype == "0/1" ? hetHomColors.het : hetHomColors.hom;
