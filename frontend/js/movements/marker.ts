@@ -2,6 +2,7 @@ import { ShadowBaseElement } from "../components/util/shadowbaseelement";
 import { COLORS, SIZES, STYLE, ZINDICES } from "../constants";
 import { rangeSize, sortRange } from "../util/utils";
 import { requireElement } from "../util/dom";
+import { closeButtonShowing } from "../util/marker_hover";
 
 const style = STYLE.menu;
 
@@ -119,13 +120,18 @@ export class GensMarker extends ShadowBaseElement {
   }
 
   private handleMouseMove(e: MouseEvent) {
-    const r = this.getBoundingClientRect();
-    const over =
-      e.clientX >= r.left &&
-      e.clientX <= r.right &&
-      e.clientY >= r.top &&
-      e.clientY <= r.bottom;
-    this.close.style.display = this.isCreated && over ? "block" : "none";
+    // The button's own rectangle counts too. It is placed inside the
+    // highlight's top right corner, which needs 32 px of highlight to fit in;
+    // a highlight around a single gene is often narrower than that, and the
+    // button then sits beside the highlight rather than on it. Testing the
+    // highlight alone hid it as soon as the pointer arrived.
+    const showing = closeButtonShowing(
+      { x: e.clientX, y: e.clientY },
+      this.getBoundingClientRect(),
+      this.close.getBoundingClientRect(),
+      this.isCreated,
+    );
+    this.close.style.display = showing ? "block" : "none";
   }
 }
 
