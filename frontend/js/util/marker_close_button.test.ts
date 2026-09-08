@@ -1,4 +1,13 @@
-import { closeButtonShowing, HOVER_GRACE_PX, withinRect } from "./marker_hover";
+import {
+  CLOSE_BUTTON_SPACE_PX,
+  CLOSE_GAP_PX,
+  CLOSE_INSET_PX,
+  CLOSE_SIZE_PX,
+  closeButtonPlacement,
+  closeButtonShowing,
+  HOVER_GRACE_PX,
+  withinRect,
+} from "./marker_close_button";
 
 const rect = (left: number, right: number, top = 0, bottom = 400) => ({
   left,
@@ -118,5 +127,45 @@ describe("a highlight still being dragged out", () => {
         false,
       ),
     ).toBe(false);
+  });
+});
+
+describe("where the close button goes", () => {
+  test("inside the corner when the highlight can hold it", () => {
+    expect(closeButtonPlacement(400)).toEqual({
+      left: "auto",
+      right: `${CLOSE_INSET_PX}px`,
+    });
+  });
+
+  test("just outside the right edge when it cannot", () => {
+    // A gene-width highlight. Outside on the right rather than off the left,
+    // where it read as belonging to whatever track it floated over.
+    expect(closeButtonPlacement(3)).toEqual({
+      left: `calc(100% + ${CLOSE_GAP_PX}px)`,
+      right: "auto",
+    });
+  });
+
+  test("the boundary is wide enough to leave the highlight visible", () => {
+    // At exactly the button's width the button covers the whole highlight,
+    // which is no better than hiding it. The inset is counted on both sides.
+    expect(closeButtonPlacement(CLOSE_BUTTON_SPACE_PX).right).toBe(
+      `${CLOSE_INSET_PX}px`,
+    );
+    expect(closeButtonPlacement(CLOSE_BUTTON_SPACE_PX - 1).left).not.toBe(
+      "auto",
+    );
+    expect(CLOSE_BUTTON_SPACE_PX).toBeGreaterThan(CLOSE_SIZE_PX);
+  });
+
+  test("exactly one side is pinned, so the button keeps its width", () => {
+    // Pinning both sides of a positioned element leaves it over-constrained,
+    // and which one the browser drops is not something to lean on.
+    for (const width of [3, 31, 40, 400]) {
+      const { left, right } = closeButtonPlacement(width);
+      expect([left === "auto", right === "auto"]).toContain(true);
+      expect(left === "auto" && right === "auto").toBe(false);
+    }
   });
 });

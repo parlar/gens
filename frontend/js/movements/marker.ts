@@ -2,7 +2,12 @@ import { ShadowBaseElement } from "../components/util/shadowbaseelement";
 import { COLORS, SIZES, STYLE, ZINDICES } from "../constants";
 import { rangeSize, sortRange } from "../util/utils";
 import { requireElement } from "../util/dom";
-import { closeButtonShowing } from "../util/marker_hover";
+import {
+  CLOSE_INSET_PX,
+  CLOSE_SIZE_PX,
+  closeButtonPlacement,
+  closeButtonShowing,
+} from "../util/marker_close_button";
 
 const style = STYLE.menu;
 
@@ -24,17 +29,17 @@ template.innerHTML = String.raw`
     #close {
       display: none;
       position: absolute;
-      top: ${SIZES.m}px;
-      right: ${SIZES.m}px;
+      top: ${CLOSE_INSET_PX}px;
+      right: ${CLOSE_INSET_PX}px;
 
-      width: 1.5em;
-      height: 1.5em;
+      width: ${CLOSE_SIZE_PX}px;
+      height: ${CLOSE_SIZE_PX}px;
       background: rgba(0, 0, 0, 0.4);
       text-align: center;
       color: white;
 
       font-size: ${style.headerSize}px;
-      line-height: 1.5em;
+      line-height: ${CLOSE_SIZE_PX}px;
       cursor: pointer;
       pointer-events: auto;
     }
@@ -117,6 +122,13 @@ export class GensMarker extends ShadowBaseElement {
     this.style.left = `${sortedRange[0]}px`;
     this.style.width = `${width}px`;
     this.style.height = `${this.height}px`;
+
+    // A highlight around a single gene is a few pixels wide and cannot hold the
+    // button, which then went off its left-hand side and read as belonging to
+    // whichever track it floated over. Outside the right edge instead.
+    const placement = closeButtonPlacement(width);
+    this.close.style.left = placement.left;
+    this.close.style.right = placement.right;
   }
 
   private handleMouseMove(e: MouseEvent) {
