@@ -19,6 +19,15 @@
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "useUnknownInCatchVariables": true,
+    // The one piece of "strict" left off, deliberately. These components attach
+    // their shadow template in the constructor and read elements out of it in
+    // connectedCallback, so almost every field is assigned after the
+    // constructor has run and the flag cannot see it. Turned on it reports 170
+    // fields across 26 files, and silencing each with "!" asserts exactly what
+    // the code already assumes -- it documents nothing and buries a real find.
+    // Measured 2026-09-08: of the 180 it reported, 10 were fields never
+    // assigned or read anywhere. Those are gone; the rest were the pattern.
+    "strictPropertyInitialization": false,
     "skipLibCheck": true
   }
 }

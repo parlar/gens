@@ -19,7 +19,6 @@ const DEFAULT_BAND_COLOR = "#808080";
 const LEFT_PX_EDGE = STYLE.yAxis.width;
 
 export class BandTrack extends DataTrack {
-  getPopupInfo: (box: HoverBox) => Promise<PopupContent>;
   openContextMenu: (id: string) => void;
 
   constructor(

@@ -73,7 +73,6 @@ export class TrackMenu extends ShadowBaseElement {
 
   private _trackId: string;
   private settings: TrackPageSettings;
-  private getAnnotationSources: GetAnnotSources;
 
   private getIsHidden: () => boolean;
   private getIsCollapsed: () => boolean;

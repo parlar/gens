@@ -28,8 +28,6 @@ const Y_PAD = SIZES.s;
 export abstract class DataTrack extends CanvasTrack {
   public trackType: TrackType;
 
-  protected defaultTrackHeight: number;
-  protected collapsedTrackHeight: number;
   // Callback to allow multi-layered settings object
   protected getSettings: () => DataTrackSettings;
   // protected updateSettings: (settings: DataTrackSettings) => void;

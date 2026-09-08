@@ -18,7 +18,6 @@ import { DataTrack } from "./base_tracks/data_track";
 const SHADE_STRIP_HEIGHT = 5;
 
 export class DotTrack extends DataTrack {
-  startExpanded: boolean;
   /**
    * Keep the colour each dot carries instead of forcing black.
    *

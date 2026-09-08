@@ -297,7 +297,6 @@ export class SettingsMenu extends ShadowBaseElement {
   private session: GensSession;
 
   private allAnnotationSources: ApiAnnotationTrack[];
-  private geneLists: ApiGeneList[];
   private onTrackMove: (trackId: string, direction: "up" | "down") => void;
   private getCurrentSamples: () => Sample[];
   private getAllSamples: () => Sample[];

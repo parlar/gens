@@ -28,7 +28,6 @@ export class TracksManager extends ShadowBaseElement {
   private session: GensSession;
   private onChange: (settings: RenderSettings) => void;
 
-  getAnnotationDetails: (id: string) => Promise<ApiAnnotationDetails>;
   openTrackContextMenu: (track: DataTrack) => void;
 
   constructor() {

@@ -108,9 +108,11 @@ jobs:
         cache: 'npm'
     - run: npm ci
     # This passes on dev and has for a while, so failing on it costs nothing
-    # today and stops the next regression landing unnoticed. tsconfig sets
-    # strictNullChecks, so this now catches an unhandled null as well as a
-    # missing property or a wrong shape; the rest of "strict" is still off.
+    # today and stops the next regression landing unnoticed. tsconfig turns on
+    # every part of "strict" except strictPropertyInitialization, so this
+    # catches an unhandled null, an implicit any and a mismatched callback as
+    # well as a missing property or a wrong shape. tsconfig says why the last
+    # one is off.
     - run: npm run typecheck
 
   es-lint:

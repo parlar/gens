@@ -22,7 +22,6 @@ const DOT_SIZE = 2;
 const PIXEL_RATIO = 2;
 
 export class OverviewTrack extends CanvasTrack {
-  totalChromSize: number;
   chromSizes: Record<string, number>;
   marker: GensMarker;
   onChromosomeClick: (chrom: Chromosome) => void;

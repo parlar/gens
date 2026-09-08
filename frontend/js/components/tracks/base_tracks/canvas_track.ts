@@ -42,7 +42,6 @@ export abstract class CanvasTrack extends ShadowBaseElement {
   protected canvas: HTMLCanvasElement;
   protected ctx: CanvasRenderingContext2D;
   protected dimensions: { width: number; height: number };
-  protected scaleFactor: number;
   protected trackContainer: HTMLDivElement;
 
   protected startHeight: number;
@@ -51,8 +50,6 @@ export abstract class CanvasTrack extends ShadowBaseElement {
   hoverTargets: HoverBox[];
   isInitialized: boolean = false;
   protected queuedRendering: boolean = false;
-
-  onElementClick: (element: RenderBand | RenderDot) => void | null;
 
   constructor(id: string, label: string, settings: CanvasTrackSettings) {
     super(template);
