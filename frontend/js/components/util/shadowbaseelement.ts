@@ -2,7 +2,7 @@ export abstract class ShadowBaseElement extends HTMLElement {
   protected root: ShadowRoot;
 
   /** Disconnect sets of listeners attached to element on disconnect */
-  private abortController;
+  private abortController: AbortController | null = null;
 
   protected getListenerAbortSignal(): AbortSignal {
     if (this.abortController == null) {
@@ -13,10 +13,14 @@ export abstract class ShadowBaseElement extends HTMLElement {
     return this.abortController.signal;
   }
 
-  protected addElementListener(
+  // Generic over the event name, so a "mousemove" handler is handed a
+  // MouseEvent rather than an Event it has to cast. Flattening them all to
+  // Event meant every handler that wanted the pointer position had to assert
+  // its way back to the type the DOM already knew.
+  protected addElementListener<K extends keyof HTMLElementEventMap>(
     element: HTMLElement,
-    type: keyof HTMLElementEventMap,
-    callback: (event: Event) => void,
+    type: K,
+    callback: (event: HTMLElementEventMap[K]) => void,
   ) {
     element.addEventListener(type, callback, {
       signal: this.getListenerAbortSignal(),
@@ -38,6 +42,8 @@ export abstract class ShadowBaseElement extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.abortController.abort();
+    // Null for an element disconnected before it was ever connected, which
+    // happens when one is built and dropped without being attached.
+    this.abortController?.abort();
   }
 }

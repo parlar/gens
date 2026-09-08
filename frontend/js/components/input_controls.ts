@@ -1,9 +1,9 @@
 import {
-  CHROMOSOMES,
   COLORS,
   ICONS,
   SEARCH_PAD_FRAC,
   SIZES,
+  isChromosome,
 } from "../constants";
 import { GensSession } from "../state/gens_session";
 import { getPan } from "../util/navigation";
@@ -323,24 +323,37 @@ export class InputControls extends HTMLElement {
 
 async function queryRegionOrGene(
   query: string,
-  onChangePosition: (chrom: string, range?: Rng) => void,
-  getSearchResult: (string) => Promise<ApiSearchResult | null>,
+  onChangePosition: (chrom: Chromosome, range?: Rng) => void,
+  getSearchResult: (query: string) => Promise<ApiSearchResult | null>,
   getCurrentChromSize: () => number,
 ) {
   let chrom: Chromosome;
   let range: Rng | undefined = undefined;
   if (query.includes(":")) {
     const parts = query.split(":");
-    chrom = parts[0] as Chromosome;
+    if (!isChromosome(parts[0])) {
+      // Not a chromosome, so this is not a region. The cast that stood here
+      // took the reader's word for it, and "banana:100-200" moved the view to a
+      // chromosome that does not exist -- blank tracks, no message. Returning
+      // leaves the view where it was, which is what a search that matches
+      // nothing already does.
+      return;
+    }
+    chrom = parts[0];
     range = parts[1].split("-").map((val) => parseInt(val)) as Rng;
-  } else if (CHROMOSOMES.includes(query as Chromosome)) {
-    chrom = query as Chromosome;
+  } else if (isChromosome(query)) {
+    chrom = query;
   } else {
     const searchResult = await getSearchResult(query);
     if (searchResult == null) {
       return;
     }
-    chrom = searchResult.chromosome as Chromosome;
+    // The search endpoint answers with a chromosome of this build, so this
+    // holds; checking says so rather than assuming it.
+    if (!isChromosome(searchResult.chromosome)) {
+      return;
+    }
+    chrom = searchResult.chromosome;
 
     if (searchResult.start !== null && searchResult.end !== null) {
       // Add visual padding at edges

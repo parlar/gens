@@ -211,7 +211,7 @@ function asTranscript(band: PositionedBand): TranscriptBand | null {
 function drawBand(
   ctx: CanvasRenderingContext2D,
   band: PositionedBand,
-  xScale: (number) => number,
+  xScale: (position: number) => number,
   showDetails: boolean,
   isExpanded: boolean,
   screenRange?: Rng,

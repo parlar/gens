@@ -44,7 +44,7 @@ tableTemplate.innerHTML = String.raw`
 
 function prettyDate(isoString: string): string {
   const d = new Date(isoString);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   const Y = d.getFullYear();
   const M = pad(d.getMonth() + 1);
   const D = pad(d.getDate());

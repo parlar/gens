@@ -13,6 +13,12 @@
     // tell the two apart -- which is how a missing value travels from wherever
     // it appeared to wherever it is finally read.
     "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "useUnknownInCatchVariables": true,
     "skipLibCheck": true
   }
 }

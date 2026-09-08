@@ -310,7 +310,7 @@ interface RenderDataSource {
 
   getAnnotationBands: (
     sourceId: string,
-    chrom: string,
+    chrom: Chromosome,
   ) => Promise<BandTrackData>;
   getAnnotationDetails: (bandId: string) => Promise<ApiAnnotationDetails>;
 
@@ -319,7 +319,7 @@ interface RenderDataSource {
   ) => Promise<{ id: string; name: string }[]>;
   getSampleAnnotationBands: (
     trackId: string,
-    chrom: string,
+    chrom: Chromosome,
   ) => Promise<RenderBand[]>;
   getSampleAnnotationDetails: (
     recordId: string,
@@ -327,39 +327,42 @@ interface RenderDataSource {
 
   getCovData: (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
   ) => Promise<RenderDot[]>;
   getBafData: (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
   ) => Promise<RenderDot[]>;
   getHetDensityData: (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
   ) => Promise<DotTrackData>;
   getReadConnections: (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
   ) => Promise<ConnectionsTrackData>;
   hasReadConnections: (id: SampleIdentifier) => Promise<boolean>;
 
   getHomologyBands: (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
   ) => Promise<RenderBand[]>;
 
-  getTranscriptBands: (chrom: string) => Promise<RenderBand[]>;
+  getTranscriptBands: (chrom: Chromosome) => Promise<RenderBand[]>;
   getTranscriptDetails: (geneId: string) => Promise<ApiGeneDetails>;
 
-  getGeneListBands: (listId: string, chrom: string) => Promise<RenderBand[]>;
+  getGeneListBands: (
+    listId: string,
+    chrom: Chromosome,
+  ) => Promise<RenderBand[]>;
 
   getVariantBands: (
     sample: Sample,
-    chrom: string,
+    chrom: Chromosome,
     rankScoreThres: number,
   ) => Promise<RenderBand[]>;
   getVariantDetails: (variantId: string) => Promise<ApiVariantDetails>;
@@ -611,7 +614,7 @@ interface DataTrackSettings {
   yPadBands?: boolean;
   isExpanded: boolean;
   isHidden: boolean;
-  chromosome?: string;
+  chromosome?: Chromosome;
   sourceId?: string;
 }
 
@@ -789,6 +792,6 @@ type WarningThreshold =
 type WarningIgnore = {
   sex?: Sex;
   column?: string;
-  chromosome?: string;
+  chromosome?: Chromosome;
   row?: string;
 };

@@ -31,7 +31,7 @@ function calculateZoom(xRange: Rng) {
 
 export function getRenderDataSource(
   api: API,
-  getChrom: () => string,
+  getChrom: () => Chromosome,
   getXRange: () => Rng,
   getVariantURL: (id: string) => string | null,
 ): RenderDataSource {
@@ -57,7 +57,7 @@ export function getRenderDataSource(
 
   const getCovData = async (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
   ): Promise<RenderDot[]> => {
     const zoom = calculateZoom(xRange);
@@ -68,7 +68,7 @@ export function getRenderDataSource(
 
   const getBafData = async (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
   ): Promise<RenderDot[]> => {
     const xRange = getXRange();
     const zoom = calculateZoom(xRange);
@@ -94,7 +94,7 @@ export function getRenderDataSource(
    */
   const getHetDensityData = async (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
   ): Promise<DotTrackData> => {
     const xRange = getXRange();
 
@@ -205,7 +205,7 @@ export function getRenderDataSource(
    */
   const getHomologyBands = async (
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
   ): Promise<RenderBand[]> => {
     if (xRange[1] - xRange[0] > HOMOLOGY_MAX_WINDOW) {
@@ -222,7 +222,9 @@ export function getRenderDataSource(
     return homologyBands(homology.pairs, connections.connections, id.sampleId);
   };
 
-  const getTranscriptBands = async (chrom: string): Promise<RenderBand[]> => {
+  const getTranscriptBands = async (
+    chrom: Chromosome,
+  ): Promise<RenderBand[]> => {
     const onlyCanonical = true;
     const transcriptsRaw = await api.getTranscripts(chrom, onlyCanonical);
     return parseTranscripts(transcriptsRaw);
@@ -230,7 +232,7 @@ export function getRenderDataSource(
 
   const getGeneListBands = async (
     listId: string,
-    chrom: string,
+    chrom: Chromosome,
   ): Promise<RenderBand[]> => {
     const geneSymbols = new Set(await api.getGeneListGenes(listId, chrom));
     const onlyCanonical = true;
@@ -244,7 +246,7 @@ export function getRenderDataSource(
 
   const getVariantBands = async (
     sample: Sample,
-    chrom: string,
+    chrom: Chromosome,
     variantThres: number,
   ): Promise<RenderBand[]> => {
     const variantsRaw = await api.getVariants(sample, chrom, variantThres);
@@ -429,8 +431,9 @@ export function parseVariants(variants: ApiSimplifiedVariant[]): RenderBand[] {
 
     const subCategory = variant.sub_category;
     const hetHomColors =
-      (subCategory != null ? VARIANT_COLORS[subCategory] : undefined) ??
-      VARIANT_COLORS.default;
+      (subCategory != null
+        ? VARIANT_COLORS[subCategory as keyof typeof VARIANT_COLORS]
+        : undefined) ?? VARIANT_COLORS.default;
 
     const color =
       variant.genotype == "0/1" ? hetHomColors.het : hetHomColors.hom;

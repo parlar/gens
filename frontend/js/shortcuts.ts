@@ -7,7 +7,7 @@ export function setupShortcuts(
   session: GensSession,
   sideMenu: SideMenu,
   inputControls: InputControls,
-  onChromClick: (chrom: string) => void,
+  onChromClick: (chrom: Chromosome) => void,
   onChange: (settings: RenderSettings) => void,
   onStepGene: (delta: number) => void,
 ) {

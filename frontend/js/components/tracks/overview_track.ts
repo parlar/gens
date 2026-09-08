@@ -1,6 +1,12 @@
 import { drawBox, drawLabel, drawLine } from "../../draw/shapes";
 import { transformMap, padRange, generateID } from "../../util/utils";
-import { COLORS, SIZES, STYLE, TRANSPARENCY } from "../../constants";
+import {
+  COLORS,
+  SIZES,
+  STYLE,
+  TRANSPARENCY,
+  isChromosome,
+} from "../../constants";
 import { CanvasTrack, CanvasTrackSettings } from "./base_tracks/canvas_track";
 import {
   drawDotsScaled,
@@ -19,7 +25,7 @@ export class OverviewTrack extends CanvasTrack {
   totalChromSize: number;
   chromSizes: Record<string, number>;
   marker: GensMarker;
-  onChromosomeClick: (chrom: string) => void;
+  onChromosomeClick: (chrom: Chromosome) => void;
   yRange: Rng;
   yAxis: Axis;
 
@@ -40,7 +46,7 @@ export class OverviewTrack extends CanvasTrack {
     label: string,
     settings: CanvasTrackSettings,
     chromSizes: Record<string, number>,
-    onChromosomeClick: (chrom: string) => void,
+    onChromosomeClick: (chrom: Chromosome) => void,
     yRange: Rng,
     getRenderData: () => Promise<OverviewTrackData>,
     getRegion: () => Region,
@@ -306,12 +312,14 @@ function renderOverviewPlot(
 function pixelToChrom(
   xPixel: number,
   pxRanges: Record<string, Rng>,
-): string | null {
+): Chromosome | null {
   if (xPixel < pxRanges["1"][0]) {
     return null;
   }
   for (const [chrom, range] of Object.entries(pxRanges)) {
-    if (xPixel >= range[0] && xPixel < range[1]) {
+    // The ranges are built from this build's chromosomes, so the key is one;
+    // Object.entries flattens that back to a plain string on the way out.
+    if (xPixel >= range[0] && xPixel < range[1] && isChromosome(chrom)) {
       return chrom;
     }
   }

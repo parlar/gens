@@ -13,6 +13,9 @@ Choices.prototype._onClick = function (event: MouseEvent) {
   // Now, getting the full path where we can check inside the shadow DOM whether
   // the select is clicked
   const path = event.composedPath?.() || [];
+  // contains() takes a Node; an event target need not be one. Null reads as
+  // "not inside", which is the answer for anything that is not a node.
+  const target = event.target instanceof Node ? event.target : null;
   const containerOuter = this.containerOuter;
   const clickWasWithinContainer = path.includes(containerOuter.element);
 
@@ -31,7 +34,7 @@ Choices.prototype._onClick = function (event: MouseEvent) {
     } else if (
       this._isSelectOneElement &&
       event.target !== this.input.element &&
-      !this.dropdown.element.contains(event.target)
+      !this.dropdown.element.contains(target)
     ) {
       this.hideDropdown();
     }

@@ -1,9 +1,12 @@
 import { drawChromosomeBands, getChromosomeShape } from "../../draw/ideogram";
-import { STYLE } from "../../constants";
+import { COLORS, STYLE } from "../../constants";
 import { CanvasTrack, CanvasTrackSettings } from "./base_tracks/canvas_track";
 import "tippy.js/dist/tippy.css";
 import { getLinearScale } from "../../draw/render_utils";
 import { eventInBox } from "../../util/utils";
+
+/** For a stain the karyotype names but this build does not colour. */
+const UNKNOWN_STAIN_COLOR = COLORS.lightGray;
 
 export class IdeogramTrack extends CanvasTrack {
   private markerElement: HTMLDivElement;
@@ -94,7 +97,13 @@ export class IdeogramTrack extends CanvasTrack {
         label: band.id,
         start: band.start,
         end: band.end + 1,
-        color: stainToColor[band.stain],
+        // The karyotype's stain vocabulary is fixed, but it arrives as a
+        // string, so an unlisted one falls back to the neutral band colour
+        // rather than to undefined -- which the canvas reads as "keep the last
+        // fill", colouring the band like whatever preceded it.
+        color:
+          stainToColor[band.stain as keyof typeof stainToColor] ??
+          UNKNOWN_STAIN_COLOR,
       };
       return renderBand;
     });

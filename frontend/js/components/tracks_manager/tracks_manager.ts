@@ -50,8 +50,8 @@ export class TracksManager extends ShadowBaseElement {
 
   async initializeTrackView(
     render: (settings: RenderSettings) => void,
-    chromSizes: Record<string, number>,
-    chromClick: (chrom: string) => void,
+    chromSizes: Record<Chromosome, number>,
+    chromClick: (chrom: Chromosome) => void,
     dataSource: RenderDataSource,
     session: GensSession,
   ) {

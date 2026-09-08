@@ -342,7 +342,7 @@ export class API {
   > = {};
   getCov(
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     zoom: string,
     xRange: Rng,
   ): Promise<ApiCoverageDot[]> {
@@ -426,7 +426,7 @@ export class API {
   > = {};
   getBaf(
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     zoom: string,
     xRange: Rng,
   ): Promise<ApiCoverageDot[]> {
@@ -512,7 +512,7 @@ export class API {
   private transcriptCache: Record<string, Promise<ApiSimplifiedTranscript[]>> =
     {};
   getTranscripts(
-    chrom: string,
+    chrom: Chromosome,
     onlyCanonical: boolean,
   ): Promise<ApiSimplifiedTranscript[]> {
     const cacheKey = `${this.genomeBuild}|${chrom}|${onlyCanonical ? 1 : 0}`;
@@ -561,7 +561,7 @@ export class API {
     // Sample instead of SampleIdf to retrieve sample type
     // Later likely an analysis type should be used (i.e. constitutional vs somatic)
     sample: Sample,
-    chrom: string,
+    chrom: Chromosome,
     rank_score_threshold: number,
   ): Promise<ApiSimplifiedVariant[]> {
     const sampleKey = getSampleKey(sample);
@@ -601,7 +601,7 @@ export class API {
   }
 
   private chromCache: Record<string, Promise<ChromosomeInfo>> = {};
-  getChromData(chrom: string): Promise<ChromosomeInfo> {
+  getChromData(chrom: Chromosome): Promise<ChromosomeInfo> {
     return cachedRequest(
       this.chromCache,
       chrom,
@@ -654,7 +654,7 @@ export class API {
 
   getHetDensity(
     id: SampleIdentifier,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
     signal?: AbortSignal,
   ): Promise<ApiHetDensityTrack> {
@@ -681,7 +681,7 @@ export class API {
    */
   getHomology(
     genomeBuild: number,
-    chrom: string,
+    chrom: Chromosome,
     xRange: Rng,
     signal?: AbortSignal,
   ): Promise<ApiHomologyRegions> {
@@ -799,7 +799,7 @@ async function getCovData(
   sampleId: string,
   caseId: string,
   genomeBuild: number,
-  chrom: string,
+  chrom: Chromosome,
   zoom: string,
   range: Rng,
 ): Promise<ApiCoverageDot[]> {

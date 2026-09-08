@@ -31,7 +31,7 @@ export function createOverviewTrack(
   getData: () => Promise<Record<string, RenderDot[]>>,
   yRange: Rng,
   chromSizes: Record<string, number>,
-  chromClick: (chrom: string) => void,
+  chromClick: (chrom: Chromosome) => void,
   session: GensSession,
   yAxis: Axis,
 ): OverviewTrack {

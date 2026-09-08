@@ -281,6 +281,19 @@ export const CHROMOSOMES: Chromosome[] = [
   "Y",
 ];
 
+/**
+ * Whether a string names a chromosome in this build.
+ *
+ * Chromosome is a union of literals, so a string has to be checked before it
+ * can be treated as one. Written as a type guard rather than a boolean so the
+ * check and the narrowing are the same statement -- the pattern it replaces
+ * tested membership and then cast separately, which two places did and one
+ * place skipped.
+ */
+export function isChromosome(value: string): value is Chromosome {
+  return (CHROMOSOMES as string[]).includes(value);
+}
+
 export const bandTrackTypes: TrackType[] = [
   "annotation",
   "gene",

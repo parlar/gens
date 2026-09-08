@@ -51,18 +51,22 @@ export function objectToQueryString(obj: Record<string, unknown>): string {
   return params.toString();
 }
 
-export function get(url, params, signal?: AbortSignal) {
+export function get(
+  url: string,
+  params: Record<string, unknown>,
+  signal?: AbortSignal,
+) {
   return request(url, params, "GET", signal);
 }
 
-export function create(url, params) {
+export function create(url: string, params: Record<string, unknown>) {
   return request(url, params, "POST");
 }
 
-export function update(url, params) {
+export function update(url: string, params: Record<string, unknown>) {
   return request(url, params, "PUT");
 }
 
-export function remove(url, params) {
+export function remove(url: string, params: Record<string, unknown>) {
   return request(url, params, "DELETE");
 }

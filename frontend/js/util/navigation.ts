@@ -1,4 +1,4 @@
-import { CHROMOSOMES } from "../constants";
+import { isChromosome } from "../constants";
 
 export function getPan(
   viewRange: [number, number],
@@ -27,18 +27,22 @@ export function getPan(
 // eg 1:12-220 --> 1, 12 220
 // 1: --> 1, null, null
 // 1 --> 1, null, null
-export function parseRegionDesignation(regionString) {
-  if (regionString.includes(":")) {
-    const [chromosome, position] = regionString.split(":");
-    // verify chromosome
-    if (!CHROMOSOMES.includes(chromosome)) {
-      throw new Error(`${chromosome} is not a valid chromosome`);
-    }
-    let [start, end] = position.split("-");
-    start = parseInt(start);
-    end = parseInt(end);
-    return { chrom: chromosome, start: start, end: end };
+// Nothing calls this. The comment above describes returning a chromosome with
+// null positions for a bare "1", which the body has never done -- it returns
+// undefined. Left as it behaves rather than as it was described, since which of
+// the two is right is its owner's call.
+export function parseRegionDesignation(
+  regionString: string,
+): { chrom: Chromosome; start: number; end: number } | undefined {
+  if (!regionString.includes(":")) {
+    return undefined;
   }
+  const [chromosome, position] = regionString.split(":");
+  if (!isChromosome(chromosome)) {
+    throw new Error(`${chromosome} is not a valid chromosome`);
+  }
+  const [start, end] = position.split("-");
+  return { chrom: chromosome, start: parseInt(start), end: parseInt(end) };
 }
 
 export function zoomIn(

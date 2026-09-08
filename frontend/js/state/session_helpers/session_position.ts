@@ -88,7 +88,7 @@ export class SessionPosition {
   }
 
   // FIXME: Should be in data sources instead perhaps?
-  public getChromSize(chrom: string): number {
+  public getChromSize(chrom: Chromosome): number {
     return this.chromSizes[chrom];
   }
 

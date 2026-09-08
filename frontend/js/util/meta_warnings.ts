@@ -1,4 +1,4 @@
-import { CHROMOSOMES } from "../constants";
+import { isChromosome } from "../constants";
 
 export const META_WARNING_ROW_CLASS = "meta-table__warning-row";
 export const META_WARNING_CELL_CLASS = "meta-table__warning-cell";
@@ -55,8 +55,8 @@ export function getMetaWarnings(
 }
 
 export function parseChromosome(value: string): Chromosome | null {
-  if (CHROMOSOMES.includes(value as Chromosome)) {
-    return value as Chromosome;
+  if (isChromosome(value)) {
+    return value;
   }
   console.warn(
     `Unable to parse ${value} as chromosome. Expected 1-22,M,F. Returning null.`,

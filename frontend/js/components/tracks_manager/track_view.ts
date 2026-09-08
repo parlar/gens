@@ -138,8 +138,8 @@ export class TrackView extends ShadowBaseElement {
 
   public async initialize(
     render: (settings: RenderSettings) => void,
-    chromSizes: Record<string, number>,
-    chromClick: (chrom: string) => void,
+    chromSizes: Record<Chromosome, number>,
+    chromClick: (chrom: Chromosome) => void,
     dataSources: RenderDataSource,
     session: GensSession,
   ) {
@@ -155,6 +155,12 @@ export class TrackView extends ShadowBaseElement {
       swapThreshold: 0.5,
       onEnd: (evt: SortableEvent) => {
         const { oldIndex, newIndex } = evt;
+        // Sortable leaves both undefined for a drag that moved nothing. There
+        // is no reorder to record then, and indexing on the undefined took the
+        // first track and moved it to the end.
+        if (oldIndex == null || newIndex == null) {
+          return;
+        }
 
         const targetTrack = this.session.tracks.getTracks()[oldIndex];
         this.session.tracks.moveTrackToPos(targetTrack.trackId, newIndex);

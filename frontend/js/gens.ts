@@ -214,7 +214,7 @@ export async function initCanvases({
     (id) => session.getVariantURL(id),
   );
 
-  const onChromClick = async (chrom) => {
+  const onChromClick = async (chrom: Chromosome) => {
     session.pos.setChromosome(chrom);
     render({ reloadData: true, chromosomeChange: true });
   };
@@ -360,7 +360,7 @@ function initializeInputControls(
 ) {
   const showBadge = session.hasMetaWarnings();
 
-  const onPositionChange = async (range) => {
+  const onPositionChange = async (range: Rng) => {
     session.pos.setViewRange(range);
     render({ reloadData: true, positionOnly: true });
   };

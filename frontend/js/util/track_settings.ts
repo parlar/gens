@@ -29,7 +29,7 @@ export function trackSourceId(settings: DataTrackSettings): string {
   return settings.sourceId;
 }
 
-export function trackChromosome(settings: DataTrackSettings): string {
+export function trackChromosome(settings: DataTrackSettings): Chromosome {
   if (settings.chromosome == null) {
     throw Error(
       `${settings.trackType} track '${settings.trackId}' was built without a chromosome`,

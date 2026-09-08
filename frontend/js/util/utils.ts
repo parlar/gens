@@ -15,11 +15,15 @@ export function getVisibleYCoordinates(
 }
 
 // FIXME: Make it deal with sub-bands as well
+// Nothing calls this. Its bands were untyped, which hid that it returns a flat
+// box rather than the HoverBox its signature claimed -- so the declared type
+// could never have been satisfied. Written out as what it actually returns
+// rather than reshaped, since what it was meant to be is its owner's call.
 export function getBoundBoxes(
-  bands,
+  bands: PositionedBand[],
   xScale: Scale,
   getLabel: (band: RenderBand) => string,
-): HoverBox[] {
+): { label: string; x1: number; x2: number; y1: number; y2: number }[] {
   return bands.map((band) => {
     return {
       label: getLabel(band),
@@ -144,7 +148,7 @@ export function stringToHash(in_str: string): number {
  */
 export function transformMap<A, T>(
   orig: Record<string, A>,
-  extract: (string) => T,
+  extract: (value: A) => T,
 ): Record<string, T> {
   const entries = Object.entries(orig);
   const extracted: [string, T][] = entries.map(([key, data]) => [
