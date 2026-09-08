@@ -35,6 +35,8 @@ import { getOpenTrackContextMenu } from "./utils/track_menues";
 import { SessionPosition } from "../../state/session_helpers/session_position";
 import { pixelsToBases } from "../../util/panning";
 import { requireElement } from "../../util/dom";
+import { CrosshairOverlay } from "./crosshair_overlay";
+import { pxBase, PIN_GRAB_PX } from "../../util/crosshair";
 
 const trackHeight = STYLE.tracks.trackHeight;
 
@@ -89,6 +91,9 @@ export interface DataTrackWrapper {
 export class TrackView extends ShadowBaseElement {
   private topContainer: HTMLDivElement;
   private tracksContainer: HTMLDivElement;
+  private crosshair: CrosshairOverlay;
+  /** Where the pointer last was, so a keypress knows where to pin. */
+  private lastPointerXPx: number | null = null;
   private bottomContainer: HTMLDivElement;
   private positionLabel: HTMLDivElement;
   private requestRender!: (settings: RenderSettings) => void;
@@ -125,6 +130,8 @@ export class TrackView extends ShadowBaseElement {
 
     this.topContainer = requireElement(this.root, "#top-container");
     this.tracksContainer = requireElement(this.root, "#tracks-container");
+    this.crosshair = new CrosshairOverlay(this.tracksContainer);
+    this.setupCrosshair();
     this.bottomContainer = requireElement(this.root, "#bottom-container");
     this.positionLabel = requireElement(this.root, "#position-label");
   }
@@ -341,6 +348,88 @@ export class TrackView extends ShadowBaseElement {
     this.session.tracks.setTracks(dataTrackSettings);
   }
 
+  /**
+   * The crosshair: a line under the pointer, and the lines pinned to keep.
+   *
+   * Listeners rather than a render pass, because following a pointer through a
+   * full track render would put a data fetch behind every mouse move. The
+   * overlay only moves a div.
+   */
+  private setupCrosshair() {
+    const container = this.tracksContainer;
+
+    this.addElementListener(container, "mousemove", (event: MouseEvent) => {
+      const xPx = event.clientX - container.getBoundingClientRect().left;
+      this.lastPointerXPx = xPx;
+      this.crosshair.showFollower(
+        xPx,
+        pxBase(
+          xPx,
+          this.sessionPos.getXRange(),
+          container.offsetWidth,
+          STYLE.yAxis.width,
+        ),
+        container.offsetWidth,
+      );
+    });
+
+    this.addElementListener(container, "mouseleave", () => {
+      this.lastPointerXPx = null;
+      this.crosshair.hideFollower();
+    });
+
+    // The line is drawn where the pointer is, so the pointer has to be over
+    // the tracks for the key to mean anything. Bound on the document because
+    // a div takes no keyboard focus, and the reader's hands are on the mouse.
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        const active = document.activeElement as HTMLElement | null;
+        const editing = ["INPUT", "SELECT", "TEXTAREA", "SIDE-MENU"].includes(
+          active?.tagName ?? "",
+        );
+        if (editing) {
+          return;
+        }
+        if (event.key === "V") {
+          this.session.clearPins();
+          this.refreshPins();
+          return;
+        }
+        if (event.key !== "v" || this.lastPointerXPx === null) {
+          return;
+        }
+        const xRange = this.sessionPos.getXRange();
+        const width = container.offsetWidth;
+        // A few pixels of aim, converted to bases at the zoom in front of the
+        // reader: the same slack means something different at 20 kb and at 130 Mb.
+        const tolerance = pixelsToBases(
+          PIN_GRAB_PX,
+          xRange,
+          width,
+          STYLE.yAxis.width,
+        );
+        this.session.togglePin(
+          pxBase(this.lastPointerXPx, xRange, width, STYLE.yAxis.width),
+          tolerance,
+        );
+        this.refreshPins();
+      },
+      // Torn down with the rest of the view's listeners; a document listener
+      // that outlives its component keeps a dead view alive behind it.
+      { signal: this.getListenerAbortSignal() },
+    );
+  }
+
+  /** Redraw the pinned lines alone, without touching the tracks. */
+  private refreshPins() {
+    this.crosshair.renderPins(
+      this.session.getCurrentPins(),
+      this.sessionPos.getXRange(),
+      this.tracksContainer.offsetWidth,
+    );
+  }
+
   private getXScale(inverted: boolean = false): Scale {
     const xRange = this.sessionPos.getXRange();
     const yAxisWidth = STYLE.yAxis.width;
@@ -379,6 +468,12 @@ export class TrackView extends ShadowBaseElement {
         });
       });
     }
+
+    this.crosshair.renderPins(
+      this.session.getCurrentPins(),
+      this.sessionPos.getXRange(),
+      this.tracksContainer.offsetWidth,
+    );
 
     renderHighlights(
       this.tracksContainer,

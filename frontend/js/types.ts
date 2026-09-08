@@ -636,6 +636,19 @@ interface RenderSettings {
   mainSampleChanged?: boolean;
 }
 
+/**
+ * A vertical line a reader left at one base, to read the tracks against.
+ *
+ * Kept as a base position rather than a pixel, so panning and zooming carry it
+ * along; kept with its chromosome, because a coordinate without one lands
+ * somewhere arbitrary on the next.
+ */
+interface PinnedLine {
+  id: string;
+  chromosome: Chromosome;
+  position: number;
+}
+
 interface RangeHighlight {
   id: string;
   chromosome: Chromosome;

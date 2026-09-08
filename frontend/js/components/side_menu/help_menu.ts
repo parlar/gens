@@ -31,6 +31,13 @@ template.innerHTML = String.raw`
         <li><b>Click</b> chromosome bands in the ideogram chart to jump to that region</li>
         <li>Right click tracks to toggle tracks expanded / collapsed</li>
         <li>When in marker mode (toggle using the pen icon in the top bar), drag to place highlights. You can navigate directly to these later from the settings menu.</li>
+        <li>A dashed line follows the pointer across every track, with the base position beside it, so the same coordinate can be read on all of them at once</li>
+    </ul>
+    <h3>Marking boundaries</h3>
+    <p>To compare the edges of an event against the other tracks, put the pointer on an edge and press <b>V</b>. The line stays where it was left, through panning and zooming, so the tracks can be read against it without holding the pointer still. Pin the other edge as well and the distance between the two is shown between them, which for a coverage drop is the size of the event.</p>
+    <ul>
+        <li>Press <b>V</b> again on a line to take it away</li>
+        <li>Press <b>Shift+V</b> to take away all of them</li>
     </ul>
     <h3>Keyboard shortcuts</h3>
     <ul>
@@ -40,6 +47,8 @@ template.innerHTML = String.raw`
         <li>Press <b>Escape</b> to close the context menu</li>
         <li>Press <b>R</b> to reset the zoom</li>
         <li>Press <b>M</b> to toggle marker mode</li>
+        <li>Press <b>V</b> to pin a line where the pointer is, or remove the one already there</li>
+        <li>Press <b>Shift+V</b> to remove every pinned line</li>
     </ul>
     <h3>Search</h3>
     <p>To search, type your query into the search box. If multiple entries matches, Gens will navigate to the first. Available queries are:</p>

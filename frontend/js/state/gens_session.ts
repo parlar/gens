@@ -11,6 +11,7 @@ import { formatCaseLabel, generateID, normalizeAlias } from "../util/utils";
 import { SessionProfiles } from "./session_helpers/session_layouts";
 import { SessionPosition } from "./session_helpers/session_position";
 import { getArrangedTracks, Tracks } from "./session_helpers/session_tracks";
+import { pinAt } from "../util/crosshair";
 
 /**
  * The purpose of this class is to keep track of the web session,
@@ -31,6 +32,7 @@ export class GensSession {
   private markerModeOn: boolean = false;
   private regionPicker: ((range: Rng) => void) | null = null;
   private highlights: Record<string, RangeHighlight>;
+  private pins: Record<string, PinnedLine> = {};
   private mainSample: Sample;
   private samples: Sample[];
   private allSamples: Sample[];
@@ -480,6 +482,40 @@ export class GensSession {
   public removeHighlight(id: string) {
     delete this.highlights[id];
     this.render({});
+  }
+
+  /** The pinned lines on the chromosome in view. */
+  public getCurrentPins(): PinnedLine[] {
+    const chrom = this.pos.getChromosome();
+    return Object.values(this.pins).filter((pin) => pin.chromosome === chrom);
+  }
+
+  /**
+   * Leave a line at this base, or take away the one already there.
+   *
+   * One gesture both places and removes, so a line dropped in the wrong spot
+   * costs a second press rather than a trip to a menu. The tolerance is in
+   * bases because the reader is aiming with a pointer: at a whole-chromosome
+   * zoom a pixel covers thousands of bases, and an exact match would mean a
+   * line could never be taken away again.
+   */
+  public togglePin(position: number, toleranceBases: number): void {
+    const existing = pinAt(this.getCurrentPins(), position, toleranceBases);
+    if (existing !== null) {
+      delete this.pins[existing.id];
+      return;
+    }
+    const id = generateID();
+    this.pins[id] = {
+      id,
+      chromosome: this.pos.getChromosome(),
+      position: Math.round(position),
+    };
+  }
+
+  /** Take away every pinned line, on every chromosome. */
+  public clearPins(): void {
+    this.pins = {};
   }
 
   public resetTrackLayout(): void {
