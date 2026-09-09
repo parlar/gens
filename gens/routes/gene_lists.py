@@ -27,8 +27,7 @@ def get_gene_list_symbols(
 ) -> list[str]:
     """Get gene list entries"""
 
-    gene_names = variant_adapter.get_gene_list(panel_id, version=version)
-    return gene_names
+    return variant_adapter.get_gene_list(panel_id, version=version).symbols
 
 
 @router.get("/{panel_id}/genes", tags=[ApiTags.GENE_LIST])
@@ -45,11 +44,14 @@ def get_gene_list_positions(
     place, so a reader stepping through a panel can tell how much of that panel
     they have actually seen.
     """
-    symbols = variant_adapter.get_gene_list(panel_id, version=version)
-    genes, missing = get_panel_gene_positions(db, symbols, genome_build)
+    resolved = variant_adapter.get_gene_list(panel_id, version=version)
+    genes, missing = get_panel_gene_positions(db, resolved.symbols, genome_build)
     return PanelGenes(
         panel_id=panel_id,
-        version=version or "",
+        # The version that was used, not the one that was asked for. Without a
+        # pinned version the adapter takes the newest, and echoing back the
+        # empty request told a caller nothing about which set it received.
+        version=resolved.version,
         genome_build=genome_build,
         genes=genes,
         missing=missing,

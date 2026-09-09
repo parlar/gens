@@ -10,6 +10,7 @@ from gens.crud.scout import VariantNotFoundError, VariantValidationError
 from gens.crud.utils import query_genomic_region
 from gens.models.annotation import (
     GeneListRecord,
+    ResolvedGeneList,
     SimplifiedVariantRecord,
     VariantRecord,
 )
@@ -136,29 +137,40 @@ class ScoutMongoAdapter(InterpretationAdapter):
 
         return gene_lists
 
-    def get_gene_list(self, gene_list_id: str, version: str | None = None) -> list[str]:
+    def get_gene_list(
+        self, gene_list_id: str, version: str | None = None
+    ) -> ResolvedGeneList:
         """Gene symbols for a panel, at a pinned version when one is given.
 
         Panels are curated, so "the newest version" is a moving target. A reader
         walking a panel needs the set to hold still, and a reader comparing with
         Scout needs to know which set they are looking at; both need the version
-        to travel with the request. Without one this keeps the old behaviour.
+        to travel with the request. Without one this keeps the old behaviour,
+        and reports the version it settled on.
         """
         query: dict[str, Any] = {"panel_name": gene_list_id}
         if version is not None:
             try:
                 query["version"] = float(version)
             except ValueError:
+                # float() raises before the assignment, so there is nothing to
+                # remove. The del that stood here raised KeyError instead, and
+                # an unparseable version became a 500 rather than the fall back
+                # to the newest that the message promises.
                 LOG.warning("ignoring unparseable panel version %r", version)
-                del query["version"]
         # Sorting descending still picks the newest when no version was pinned.
         cursor = self._db.get_collection("gene_panel").find(query).sort("version", -1).limit(1)
         gene_list = next(cursor, None)
         if not gene_list:
-            return []
+            return ResolvedGeneList(version="", symbols=[])
         genes = []
         for gene in gene_list.get("genes", []):
             symbol = gene.get("hgnc_symbol") or gene.get("symbol")
             if symbol:
                 genes.append(symbol)
-        return genes
+        # Spelled the way get_gene_lists spells it, so a version read off the
+        # listing can be handed straight back to pin it.
+        resolved = gene_list.get("version")
+        return ResolvedGeneList(
+            version="" if resolved is None else str(resolved), symbols=genes
+        )

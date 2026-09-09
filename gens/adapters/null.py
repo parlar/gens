@@ -6,6 +6,7 @@ from gens.adapters.base import InterpretationAdapter
 from gens.crud.scout import VariantNotFoundError
 from gens.models.annotation import (
     GeneListRecord,
+    ResolvedGeneList,
     SimplifiedVariantRecord,
     VariantRecord,
 )
@@ -37,5 +38,7 @@ class NullInterpretationAdapter(InterpretationAdapter):
     def get_gene_lists(self) -> list[GeneListRecord]:
         return []
 
-    def get_gene_list(self, gene_list_id: str, version: str | None = None) -> list[str]:
-        return []
+    def get_gene_list(
+        self, gene_list_id: str, version: str | None = None
+    ) -> ResolvedGeneList:
+        return ResolvedGeneList(version="", symbols=[])

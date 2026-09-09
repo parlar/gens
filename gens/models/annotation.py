@@ -179,6 +179,20 @@ class TranscriptRecord(RWModel):
     genome_build: GenomeBuild
 
 
+class ResolvedGeneList(RWModel):
+    """A panel's gene symbols, and the version they were actually taken from.
+
+    Without a pinned version the adapter takes the newest, and only it knows
+    which that was. Returning the two together is what lets a caller say which
+    set of genes it is holding -- a panel is curated, so "the newest" names a
+    different set from one week to the next.
+    """
+
+    #: Empty when no panel matched, in which case there are no symbols either.
+    version: str
+    symbols: list[str]
+
+
 class GeneListRecord(RWModel):
     id: str
     name: str

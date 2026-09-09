@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from gens.models.annotation import (
     GeneListRecord,
+    ResolvedGeneList,
     SimplifiedVariantRecord,
     VariantRecord,
 )
@@ -33,10 +34,13 @@ class InterpretationAdapter(ABC):
         """Return list of panel IDs and names"""
 
     @abstractmethod
-    def get_gene_list(self, gene_list_id: str, version: str | None = None) -> list[str]:
-        """Return gene symbols for a gene list.
+    def get_gene_list(
+        self, gene_list_id: str, version: str | None = None
+    ) -> ResolvedGeneList:
+        """Return gene symbols for a gene list, with the version they came from.
 
         `version` pins the panel version. Without it the newest version is
         returned, which can change under a reader mid-session as panels are
-        curated.
+        curated -- so the version that was used comes back with the symbols
+        rather than staying inside the adapter.
         """
